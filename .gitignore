@@ -1,1 +1,6 @@
 copy*
+
+node_modules
+generated
+build
+contracts/
