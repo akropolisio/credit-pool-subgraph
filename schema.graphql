@@ -1,6 +1,18 @@
-type ExampleEntity @entity {
+type Staker @entity {
   id: ID!
-  count: BigInt!
-  owner: Bytes! # address
-  spender: Bytes! # address
+  stakedPTK: BigInt!
+}
+
+type Credit @entity {
+  id: ID!
+  sender: Bytes!
+  currentDebt: BigInt!
+  pledgers: [Bytes!]!
+}
+
+type Pool @entity {
+  id: ID!,
+  lToken: BigInt!,
+  pToken: BigInt!,
+  loans:
 }

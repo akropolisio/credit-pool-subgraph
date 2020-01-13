@@ -2,10 +2,7 @@ import { BigInt } from "@graphprotocol/graph-ts"
 import {
   Contract,
   Approval,
-  MinterAdded,
-  MinterRemoved,
-  OwnershipTransferred,
-  Transfer
+  
 } from "../generated/Contract/Contract"
 import { ExampleEntity } from "../generated/schema"
 
@@ -24,7 +21,7 @@ export function handleApproval(event: Approval): void {
   }
 
   // BigInt and BigDecimal math are supported
-  entity.count = entity.count + BigInt.fromI32(1)
+  // entity.count = entity.count + BigInt.fromI32(1)
 
   // Entity fields can be set based on event parameters
   entity.owner = event.params.owner
@@ -65,10 +62,3 @@ export function handleApproval(event: Approval): void {
   // - contract.transferFrom(...)
 }
 
-export function handleMinterAdded(event: MinterAdded): void {}
-
-export function handleMinterRemoved(event: MinterRemoved): void {}
-
-export function handleOwnershipTransferred(event: OwnershipTransferred): void {}
-
-export function handleTransfer(event: Transfer): void {}
