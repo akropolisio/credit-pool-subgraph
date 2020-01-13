@@ -1,64 +1,61 @@
-import { BigInt } from "@graphprotocol/graph-ts"
+import { BigInt } from "@graphprotocol/graph-ts";
+import { Status } from "../generated/FundsModule/FundsModule";
 import {
-  Contract,
-  Approval,
-  
-} from "../generated/Contract/Contract"
-import { ExampleEntity } from "../generated/schema"
+  Deposit,
+  Withdraw
+} from "../generated/LiquidityModule/LiquidityModule";
+import {
+  DebtProposalCreated,
+  PledgeAdded,
+  PledgeWithdrawn,
+  DebtProposalExecuted,
+  Repay,
+  UnlockedPledgeWithdraw
+} from "../generated/LoanModule/LoanModule";
+import { Staker, User, Debt, Pool } from "../generated/schema";
 
-export function handleApproval(event: Approval): void {
-  // Entities can be loaded from the store using a string ID; this ID
-  // needs to be unique across all entities of the same type
-  let entity = ExampleEntity.load(event.transaction.from.toHex())
+export function handleStatus(event: Status): void {
+  let pool = new Pool(new Date().getTime().toString());
+  pool.lBalance = event.params.lBalance;
+  pool.lDebt = event.params.lDebt;
+  pool.pEnterPrice = event.params.pEnterPrice;
+  pool.pExitPrice = event.params.pExitPrice;
 
-  // Entities only exist after they have been saved to the store;
-  // `null` checks allow to create entities on demand
-  if (entity == null) {
-    entity = new ExampleEntity(event.transaction.from.toHex())
+  pool.save();
+}
 
-    // Entity fields can be set using simple assignments
-    entity.count = BigInt.fromI32(0)
+export function handleDeposit(event: Deposit): void {
+  let user = User.load(event.params.sender.toHex());
+
+  if (user == null) {
+    user = new User(event.params.sender.toHex());
+    user.lBalance = BigInt.fromI32(0);
+    user.pBalance = BigInt.fromI32(0);
+    user.locked = BigInt.fromI32(0);
+    user.credit = BigInt.fromI32(0);
   }
 
-  // BigInt and BigDecimal math are supported
-  // entity.count = entity.count + BigInt.fromI32(1)
-
-  // Entity fields can be set based on event parameters
-  entity.owner = event.params.owner
-  entity.spender = event.params.spender
-
-  // Entities can be written to the store with `.save()`
-  entity.save()
-
-  // Note: If a handler doesn't require existing field values, it is faster
-  // _not_ to load the entity from the store. Instead, create it fresh with
-  // `new Entity(...)`, set the fields that should be updated and save the
-  // entity back to the store. Fields that were not set or unset remain
-  // unchanged, allowing for partial updates to be applied.
-
-  // It is also possible to access smart contracts from mappings. For
-  // example, the contract that has emitted the event can be connected to
-  // with:
-  //
-  // let contract = Contract.bind(event.address)
-  //
-  // The following functions can then be called on this contract to access
-  // state variables and other data:
-  //
-  // - contract.allowance(...)
-  // - contract.approve(...)
-  // - contract.balanceOf(...)
-  // - contract.decimals(...)
-  // - contract.decreaseAllowance(...)
-  // - contract.increaseAllowance(...)
-  // - contract.isMinter(...)
-  // - contract.isOwner(...)
-  // - contract.mint(...)
-  // - contract.name(...)
-  // - contract.owner(...)
-  // - contract.symbol(...)
-  // - contract.totalSupply(...)
-  // - contract.transfer(...)
-  // - contract.transferFrom(...)
+  user.address = event.params.sender;
+  user.lBalance = user.lBalance.plus(event.params.lAmount);
+  user.pBalance = user.lBalance.plus(event.params.pAmount);
+  user.save()
 }
+
+export function handleWithdraw(event: Withdraw): void {
+  let user = User.load(event.params.sender.toHex());
+
+  user.address = event.params.sender;
+  user.lBalance = user.lBalance.minus(event.params.lAmountTotal);
+  user.pBalance = user.lBalance.minus(event.params.pAmount);
+  user.save()
+
+  // let pool = new Pool(new Date().getTime().toString());
+  // pool.lBalance = event.params.lBalance;
+  // pool.lDebt = event.params.lDebt;
+  // pool.pEnterPrice = event.params.pEnterPrice;
+  // pool.pExitPrice = event.params.pExitPrice;
+
+  // pool.save();
+}
+
 
