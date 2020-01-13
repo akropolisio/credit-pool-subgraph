@@ -8,28 +8,17 @@ dataSources:
     source:
       address: "0x0000000000000000000000000000000000000000"
       abi: PToken
+      startBlock: 9200000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
       language: wasm/assemblyscript
       entities:
-        - Approval
-        - MinterAdded
-        - MinterRemoved
-        - OwnershipTransferred
         - Transfer
       abis:
         - name: PToken
           file: ./abis/PToken.json
       eventHandlers:
-        - event: Approval(indexed address,indexed address,uint256)
-          handler: handleApproval
-        - event: MinterAdded(indexed address)
-          handler: handleMinterAdded
-        - event: MinterRemoved(indexed address)
-          handler: handleMinterRemoved
-        - event: OwnershipTransferred(indexed address,indexed address)
-          handler: handleOwnershipTransferred
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
       file: ./src/mapping.ts
@@ -39,6 +28,7 @@ dataSources:
     source:
       address: "0x0000000000000000000000000000000000000000"
       abi: FundsModule
+      startBlock: 9200000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -49,5 +39,63 @@ dataSources:
         - name: FundsModule
           file: ./abis/FundsModule.json
       eventHandlers:
-
+        - event: Status(uint256,uint256,uint256,uint256)
+          handler: handleStatus
+      file: ./src/mapping.ts
+  - kind: ethereum/contract
+    name: LiquidityModule
+    network: kovan
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: LiquidityModule
+      startBlock: 9200000
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.3
+      language: wasm/assemblyscript
+      entities:
+        - Status
+      abis:
+        - name: LiquidityModule
+          file: ./abis/LiquidityModule.json
+      eventHandlers:
+        - event: Deposit(indexed address,uint256,uint256)
+          handler: handleDeposit
+        - event: Withdraw(indexed address,uint256,uint256,uint256)
+          handler: handleWithdraw
+      file: ./src/mapping.ts
+  - kind: ethereum/contract
+    name: LoanModule
+    network: kovan
+    source:
+      address: "0x0000000000000000000000000000000000000000"
+      abi: LoanModule
+      startBlock: 9200000
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.3
+      language: wasm/assemblyscript
+      entities:
+        - DebtProposalCreated
+        - PledgeAdded
+        - PledgeWithdrawn
+        - DebtProposalExecuted
+        - Repay
+        - UnlockedPledgeWithdraw
+      abis:
+        - name: LoanModule
+          file: ./abis/LoanModule.json
+      eventHandlers:
+        - event: DebtProposalCreated(indexed address,uint256,uint256,uint256)
+          handler: handleDebtProposalCreated
+        - event: PledgeAdded(indexed address,indexed address,uint256,uint256,uint256)
+          handler: handlePledgeAdded
+        - event: PledgeWithdrawn(indexed address,indexed address,uint256,uint256,uint256)
+          handler: handlePledgeWithdrawn
+        - event: DebtProposalExecuted(indexed address,uint256,uint256,uint256)
+          handler: handleDebtProposalExecuted
+        - event: Repay(indexed address,uint256,uint256,uint256,uint256,uint256)
+          handler: handleRepay
+        - event: UnlockedPledgeWithdraw(indexed address,indexed address,uint256,uint256)
+          handler: handleUnlockedPledgeWithdraw
       file: ./src/mapping.ts

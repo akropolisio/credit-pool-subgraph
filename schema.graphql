@@ -1,18 +1,41 @@
-type Staker @entity {
+type User @entity {
   id: ID!
-  stakedPTK: BigInt!
+  address: Bytes!,
+  lBalance: BigInt!,
+  pBalance: BigInt!,
+  locked: BigInt!,
+  credit: BigInt!,
 }
 
-type Credit @entity {
+type Debt @entity {
   id: ID!
-  sender: Bytes!
-  currentDebt: BigInt!
-  pledgers: [Bytes!]!
+  borrower: Bytes!,
+  total: BigInt!,
+  repayed: BigInt!,
+  pledgers: [Pledge!]!,
+  status: Status!
+}
+
+type Pledge @entity {
+  id: ID!
+  pledger: Bytes!,
+  lAmount: BigInt!,
+  pAmount: BigInt!
 }
 
 type Pool @entity {
   id: ID!,
-  lToken: BigInt!,
-  pToken: BigInt!,
-  loans:
+  lBalance: BigInt!,
+  lDebt: BigInt!,
+  pEnterPrice: Int!,
+  pExitPrice: Int!,
+  loans: BigInt!
+}
+
+enum Status {
+  PROPOSED
+  APPROVED
+  DECLINED
+  PARTIALLY_REPAYED
+  CLOSED
 }
