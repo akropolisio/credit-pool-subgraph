@@ -12,7 +12,7 @@ type Debt @entity {
   borrower: Bytes!,
   total: BigInt!,
   repayed: BigInt!,
-  pledgers: [Pledge!]!,
+  pledges: [Pledge!]!,
   status: Status!
 }
 
