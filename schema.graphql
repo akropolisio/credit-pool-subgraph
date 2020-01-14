@@ -1,10 +1,17 @@
 type User @entity {
   id: ID!
-  address: Bytes!,
   lBalance: BigInt!,
   pBalance: BigInt!,
   locked: BigInt!,
   credit: BigInt!,
+  history: [Balance!]!
+}
+
+type Balance @entity{
+  id: ID!,
+  user: Bytes!,
+  lBalance: BigInt!,
+  pBalance: BigInt!,
 }
 
 type Debt @entity {
@@ -13,7 +20,8 @@ type Debt @entity {
   total: BigInt!,
   repayed: BigInt!,
   pledges: [Pledge!]!,
-  status: Status!
+  status: Status!,
+  debt_id: Int
 }
 
 type Pledge @entity {

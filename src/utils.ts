@@ -11,7 +11,7 @@ export function concat(a: ByteArray, b: ByteArray): ByteArray {
   return out as ByteArray;
 }
 
-export function concat_array(...args: [ByteArray]): ByteArray {
+export function concat_array(...args: Array<ByteArray>): ByteArray {
   let reducer = (acc, cur) => acc + cur.length;
   let len = args.reduce(reducer, 0);
 

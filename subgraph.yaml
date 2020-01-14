@@ -6,9 +6,9 @@ dataSources:
     name: PToken
     network: kovan
     source:
-      address: "0x0000000000000000000000000000000000000000"
+      address: "0x671e51CAAAde72DfD6B6d2dEDFa102368dE74c84"
       abi: PToken
-      startBlock: 9200000
+      startBlock: 8000000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -26,9 +26,9 @@ dataSources:
     name: FundsModule
     network: kovan
     source:
-      address: "0x0000000000000000000000000000000000000000"
+      address: "0x82A0dcCA7F14A8eF77C8E8CC263BE6A030494e07"
       abi: FundsModule
-      startBlock: 9200000
+      startBlock: 8000000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -46,9 +46,9 @@ dataSources:
     name: LiquidityModule
     network: kovan
     source:
-      address: "0x0000000000000000000000000000000000000000"
+      address: "0x2E506DaC3563CCCDB6890f20BEBf681CA5F33190"
       abi: LiquidityModule
-      startBlock: 9200000
+      startBlock: 8000000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -68,9 +68,9 @@ dataSources:
     name: LoanModule
     network: kovan
     source:
-      address: "0x0000000000000000000000000000000000000000"
+      address: "0x1Efcb2B253a9155Be36AddF5EaEd7f644C9C09fd"
       abi: LoanModule
-      startBlock: 9200000
+      startBlock: 8000000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
