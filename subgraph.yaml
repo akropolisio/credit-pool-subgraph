@@ -79,3 +79,23 @@ dataSources:
         - event: UnlockedPledgeWithdraw(indexed address,indexed address,uint256,uint256)
           handler: handleUnlockedPledgeWithdraw
       file: ./src/mapping.ts
+  - kind: ethereum/contract
+    name: PToken
+    network: rinkeby
+    source:
+      address: "0x671e51CAAAde72DfD6B6d2dEDFa102368dE74c84"
+      abi: PToken
+      startBlock: 5000000
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.3
+      language: wasm/assemblyscript
+      entities:
+        - Transfer
+      abis:
+        - name: PToken
+          file: ./abis/PToken.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/mapping.ts

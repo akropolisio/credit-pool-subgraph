@@ -1,6 +1,5 @@
 type User @entity {
   id: ID!
-  lBalance: BigInt!,
   pBalance: BigInt!,
   locked: BigInt!,
   credit: BigInt!,
@@ -37,6 +36,7 @@ type Pool @entity {
   lDebt: BigInt!,
   pEnterPrice: BigInt!,
   pExitPrice: BigInt!,
+  users: [String]!,
 }
 
 enum Status {
