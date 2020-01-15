@@ -4,7 +4,7 @@ type User @entity {
   pBalance: BigInt!,
   locked: BigInt!,
   credit: BigInt!,
-  history: [Balance!]!
+  history: [String!]!
 }
 
 type Balance @entity{
@@ -19,7 +19,7 @@ type Debt @entity {
   borrower: Bytes!,
   total: BigInt!,
   repayed: BigInt!,
-  pledges: [ID!]!,
+  pledges: [String!]!,
   status: Status!,
   debt_id: BigInt
 }
