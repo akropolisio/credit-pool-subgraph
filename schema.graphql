@@ -9,7 +9,7 @@ type User @entity {
 
 type Balance @entity{
   id: ID!,
-  user: Bytes!,
+  user: String!,
   lBalance: BigInt!,
   pBalance: BigInt!,
 }
@@ -19,9 +19,9 @@ type Debt @entity {
   borrower: Bytes!,
   total: BigInt!,
   repayed: BigInt!,
-  pledges: [Pledge!]!,
+  pledges: [ID!]!,
   status: Status!,
-  debt_id: Int
+  debt_id: BigInt
 }
 
 type Pledge @entity {
@@ -35,9 +35,8 @@ type Pool @entity {
   id: ID!,
   lBalance: BigInt!,
   lDebt: BigInt!,
-  pEnterPrice: Int!,
-  pExitPrice: Int!,
-  loans: BigInt!
+  pEnterPrice: BigInt!,
+  pExitPrice: BigInt!,
 }
 
 enum Status {

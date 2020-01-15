@@ -1,4 +1,4 @@
-import { BigInt, Bytes, crypto, Address } from "@graphprotocol/graph-ts";
+import { BigInt, Bytes, crypto } from "@graphprotocol/graph-ts";
 import { Status } from "../generated/FundsModule/FundsModule";
 import {
   Deposit,
@@ -20,8 +20,8 @@ export function handleStatus(event: Status): void {
   let pool = new Pool(event.block.timestamp.toHex());
   pool.lBalance = event.params.lBalance;
   pool.lDebt = event.params.lDebt;
-  pool.pEnterPrice = event.params.pEnterPrice.toI32();
-  pool.pExitPrice = event.params.pExitPrice.toI32();
+  pool.pEnterPrice = event.params.pEnterPrice;
+  pool.pExitPrice = event.params.pExitPrice;
 
   pool.save();
 
@@ -55,7 +55,7 @@ export function handleDeposit(event: Deposit): void {
 
   balance.lBalance = new_l_balance;
   balance.pBalance = new_p_balance;
-  balance.user = Bytes.fromHexString(user.id);
+  balance.user = user.id;
   balance.save();
 
   user.lBalance = new_l_balance;
@@ -74,7 +74,7 @@ export function handleWithdraw(event: Withdraw): void {
 
   balance.lBalance = new_l_balance;
   balance.pBalance = new_p_balance;
-  balance.user = Bytes.fromHexString(user.id);
+  balance.user = user.id;
   balance.save();
 
   user.lBalance = new_l_balance;
@@ -100,7 +100,7 @@ export function handleDebtPoposalExecuted(event: DebtProposalExecuted): void {
   user.save();
 
   proposal.status = "EXECUTED";
-  proposal.debt_id = event.params.debt.toI32();
+  proposal.debt_id = event.params.debt;
   proposal.save();
 }
 
@@ -118,18 +118,18 @@ export function handlePledgeAdded(event: PledgeAdded): void {
   let pledger = get_user(pledge.pledger);
   pledger.locked = pledger.locked.plus(event.params.lAmount);
 
-  proposal.pledges.push(pledge.toString());
+  proposal.pledges.push(pledge.id);
   proposal.save();
 }
 
 export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
   let proposal = new Debt(event.params.proposal.toHex());
-  let hash = crypto
+  let hashed = crypto
     .keccak256(concat(event.params.sender, event.params.borrower))
     .toHexString();
-  let new_arr = proposal.pledges.filter(p => !p.includes(hash));
+  let new_arr = filter_pledges(proposal, hashed);
 
-  let pledge = Pledge.load(hash);
+  let pledge = Pledge.load(hashed);
   pledge.pledger = event.params.sender;
   pledge.lAmount = event.params.lAmount;
   pledge.pAmount = event.params.pAmount;
@@ -172,7 +172,6 @@ export function handleUnlockedPledgeWithdraw(
   pledger.save();
 }
 
-
 function get_user(address: Bytes): User {
   let user = User.load(address.toHex());
   if (user == null) {
@@ -182,5 +181,9 @@ function get_user(address: Bytes): User {
     user.locked = BigInt.fromI32(0);
     user.credit = BigInt.fromI32(0);
   }
-  return user;
+  return user as User;
+}
+
+function filter_pledges(p: Debt, hashed: string): Array<string> {
+  return p.pledges.filter(pledge => !pledge.includes(hashed));
 }
