@@ -16,16 +16,15 @@ import {
 import { User, Debt, Balance, Pool, Pledge } from "../generated/schema";
 import { concat } from "./utils";
 
+const DAY = 86400000;
+
 export function handleStatus(event: Status): void {
-  log.error("handleStatus start", []);
   let pool = new Pool(event.block.timestamp.toHex());
   pool.lBalance = event.params.lBalance;
   pool.lDebt = event.params.lDebt;
   pool.pEnterPrice = event.params.pEnterPrice;
   pool.pExitPrice = event.params.pExitPrice;
-  log.error("Before assign users", []);
   pool.users = [];
-  log.error("pool is constructed ", []);
   
   //refresh latest
   let latest_pool = pool;
@@ -35,19 +34,22 @@ export function handleStatus(event: Status): void {
   latest_pool.pExitPrice = pool.pExitPrice;
   latest_pool.save();
   pool.save();
-  log.error("pool is saved", []);
   
   // add new balance in history for all users once a day
   // TEST: will only work if timestamp returned in ms
-  const DAY = 86400000;
   let today = event.block.timestamp.div(BigInt.fromI32(DAY));
   let balance = Balance.load(today.toHex());
   
   // once a day
   if(balance == null){  
+    balance = new Balance(today.toHex());
+    balance.user = "daily";
+    balance.lBalance = BigInt.fromI32(0);
+    balance.pBalance = BigInt.fromI32(0);
+
+
     pool.users.forEach(address => {
       let user = User.load(address);
-      log.error("inside foreach", []);
       
       // get current liquid from current PTK
       let Funds_mod = FundsModule.bind(event.address);
@@ -66,8 +68,6 @@ export function handleStatus(event: Status): void {
       user.save();
     })
   }
-  log.error("THE END", []);
-
 }
 
 export function handleTransfer(event: Transfer): void {
