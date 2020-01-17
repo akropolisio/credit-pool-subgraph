@@ -1,4 +1,4 @@
-import { BigInt, Bytes, crypto } from "@graphprotocol/graph-ts";
+import { BigInt, Bytes, crypto, log } from "@graphprotocol/graph-ts";
 import { Status, FundsModule } from "../generated/FundsModule/FundsModule";
 import { PToken, Transfer } from "../generated/PToken/PToken";
 import {
@@ -17,22 +17,26 @@ import { User, Debt, Balance, Pool, Pledge } from "../generated/schema";
 import { concat } from "./utils";
 
 export function handleStatus(event: Status): void {
+  log.error("handleStatus start", []);
   let pool = new Pool(event.block.timestamp.toHex());
   pool.lBalance = event.params.lBalance;
   pool.lDebt = event.params.lDebt;
   pool.pEnterPrice = event.params.pEnterPrice;
   pool.pExitPrice = event.params.pExitPrice;
+  log.error("Before assign users", []);
   pool.users = [];
-  pool.save();
-
+  log.error("pool is constructed ", []);
+  
   //refresh latest
-  let latest_pool = get_latest_pool();
+  let latest_pool = pool;
   latest_pool.lBalance = pool.lBalance;
   latest_pool.lDebt = pool.lDebt;
   latest_pool.pEnterPrice = pool.pEnterPrice;
   latest_pool.pExitPrice = pool.pExitPrice;
   latest_pool.save();
-
+  pool.save();
+  log.error("pool is saved", []);
+  
   // add new balance in history for all users once a day
   // TEST: will only work if timestamp returned in ms
   const DAY = 86400000;
@@ -41,15 +45,10 @@ export function handleStatus(event: Status): void {
   
   // once a day
   if(balance == null){  
-    let yesterday = Balance.load(today.minus(BigInt.fromI32(1)).toHex());
-    balance = new Balance(today.toHex());
-    balance.user = "daily";
-    balance.lBalance = yesterday.lBalance;
-    balance.pBalance = yesterday.pBalance;
-
     pool.users.forEach(address => {
       let user = User.load(address);
-
+      log.error("inside foreach", []);
+      
       // get current liquid from current PTK
       let Funds_mod = FundsModule.bind(event.address);
       let result = Funds_mod.calculatePoolExitInverse(user.pBalance)
@@ -67,6 +66,8 @@ export function handleStatus(event: Status): void {
       user.save();
     })
   }
+  log.error("THE END", []);
+
 }
 
 export function handleTransfer(event: Transfer): void {
@@ -192,6 +193,7 @@ function get_user(address: Bytes): User {
     user.pBalance = BigInt.fromI32(0);
     user.locked = BigInt.fromI32(0);
     user.credit = BigInt.fromI32(0);
+    user.history = [];
   }
   return user as User;
 }
