@@ -1,9 +1,8 @@
-import { BigInt, Bytes, crypto, Address } from "@graphprotocol/graph-ts";
+import { BigInt, Bytes, crypto } from "@graphprotocol/graph-ts";
 import { Status, FundsModule } from "../generated/FundsModule/FundsModule";
 import { PToken, Transfer } from "../generated/PToken/PToken";
 import {
   Deposit,
-  Withdraw
 } from "../generated/LiquidityModule/LiquidityModule";
 import {
   LoanModule,
@@ -23,7 +22,7 @@ export function handleStatus(event: Status): void {
   pool.lDebt = event.params.lDebt;
   pool.pEnterPrice = event.params.pEnterPrice;
   pool.pExitPrice = event.params.pExitPrice;
-
+  pool.users = [];
   pool.save();
 
   //refresh latest
@@ -34,7 +33,7 @@ export function handleStatus(event: Status): void {
   latest_pool.pExitPrice = pool.pExitPrice;
   latest_pool.save();
 
-  // TODO: add new balance in history of all users once a day
+  // add new balance in history for all users once a day
   // TEST: will only work if timestamp returned in ms
   const DAY = 86400000;
   let today = event.block.timestamp.div(BigInt.fromI32(DAY));
