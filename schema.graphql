@@ -15,16 +15,19 @@ type Balance @entity{
 
 type Debt @entity {
   id: ID!
+  debt_id: BigInt!,
+  apr: BigInt!,
   borrower: Bytes!,
   total: BigInt!,
   repayed: BigInt!,
   pledges: [String!]!,
+  staked: BigInt!,
   status: Status!,
-  debt_id: BigInt
 }
 
 type Pledge @entity {
-  id: ID!
+  id: ID!,
+  proposal_id: ID!,
   pledger: Bytes!,
   lAmount: BigInt!,
   pAmount: BigInt!
@@ -37,6 +40,7 @@ type Pool @entity {
   pEnterPrice: BigInt!,
   pExitPrice: BigInt!,
   users: [String]!,
+  usersLength: BigInt!,
 }
 
 enum Status {
