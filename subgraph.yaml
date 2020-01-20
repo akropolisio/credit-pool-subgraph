@@ -38,6 +38,8 @@ dataSources:
       abis:
         - name: LiquidityModule
           file: ./abis/LiquidityModule.json
+        - name: FundsModule
+          file: ./abis/FundsModule.json
       eventHandlers:
         - event: Deposit(indexed address,uint256,uint256)
           handler: handleDeposit
@@ -93,6 +95,8 @@ dataSources:
       abis:
         - name: PToken
           file: ./abis/PToken.json
+        - name: FundsModule
+          file: ./abis/FundsModule.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
