@@ -117,18 +117,19 @@ export function handleDeposit(event: Deposit): void {
   }
 }
 
-export function handleDebtPoposalCreated(event: DebtProposalCreated): void {
+export function handleDebtProposalCreated(event: DebtProposalCreated): void {
   let proposal = new Debt(event.params.proposal.toHex());
   proposal.borrower = event.params.sender;
   proposal.total = event.params.lAmount;
   proposal.apr = event.params.interest;
   proposal.repayed = BigInt.fromI32(0);
+  proposal.staked = BigInt.fromI32(0);
   proposal.pledges = [];
   proposal.status = "PROPOSED";
   proposal.save();
 }
 
-export function handleDebtPoposalExecuted(event: DebtProposalExecuted): void {
+export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
   let proposal = Debt.load(event.params.proposal.toHex());
   let user = User.load(proposal.borrower.toHex());
   user.credit = proposal.total;

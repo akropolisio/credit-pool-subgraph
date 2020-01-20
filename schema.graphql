@@ -15,7 +15,7 @@ type Balance @entity{
 
 type Debt @entity {
   id: ID!
-  debt_id: BigInt!,
+  debt_id: BigInt,
   apr: BigInt!,
   borrower: Bytes!,
   total: BigInt!,
