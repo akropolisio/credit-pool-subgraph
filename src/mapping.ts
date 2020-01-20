@@ -1,4 +1,4 @@
-import { BigInt, Bytes, crypto, log } from "@graphprotocol/graph-ts";
+import { BigInt, Bytes, Address, crypto, log } from "@graphprotocol/graph-ts";
 import { Status, FundsModule } from "../generated/FundsModule/FundsModule";
 import { Transfer } from "../generated/PToken/PToken";
 import { Deposit } from "../generated/LiquidityModule/LiquidityModule";
@@ -12,13 +12,10 @@ import {
   UnlockedPledgeWithdraw
 } from "../generated/LoanModule/LoanModule";
 import { User, Debt, Balance, Pool, Pledge } from "../generated/schema";
-import { concat } from "./utils";
-
-const DAY = 86400000;
-const latest_date = "1287558610000";
+import { concat, latest_date, DAY } from "./utils";
 
 export function handleStatus(event: Status): void {
-  let latest_pool = Pool.load(latest_date);
+  let latest_pool = get_latest_pool();
   let pool = new Pool(event.block.timestamp.toHex());
   pool.lBalance = event.params.lBalance;
   pool.lDebt = event.params.lDebt;
@@ -46,25 +43,17 @@ export function handleStatus(event: Status): void {
     balance.user = latest_date;
     balance.lBalance = BigInt.fromI32(0);
     balance.pBalance = BigInt.fromI32(0);
-
+    
     pool.users.forEach(address => {
       let user = User.load(address);
-
-      // get current liquid from current PTK
-      let Funds_mod = FundsModule.bind(event.address);
-      let result = Funds_mod.calculatePoolExitInverse(user.pBalance);
-      let user_lBalance = result.value1;
-
+      let user_lBalance = calculate_lBalance(event.address, user.pBalance);
+      
       // add balance record
       let balance = new Balance(event.block.timestamp.toHex());
       balance.pBalance = user.pBalance;
       balance.lBalance = user_lBalance;
       balance.user = user.id;
       balance.save();
-
-      //push record to user history
-      user.history.push(balance.id);
-      user.save();
     });
   }
 }
@@ -76,12 +65,32 @@ export function handleTransfer(event: Transfer): void {
   if (!pool.users.includes(from.id)) {
     pool.usersLength = pool.usersLength.plus(BigInt.fromI32(1));
     pool.users.push(from.id);
+
+    // let balance = init_balance(event.block.timestamp, from);
+    // // get current liquid from current PTK
+    // let Funds_mod = FundsModule.bind(event.address);
+    // let result = Funds_mod.calculatePoolExitInverse(event.params.value);
+    // let lBalanceCalculated = result.value1;
+    // balance.pBalance = balance.pBalance.plus(event.params.value);
+    // balance.lBalance = balance.lBalance.plus(lBalanceCalculated);
+    // balance.save();
+
     pool.save();
   }
 
   if (!pool.users.includes(to.id)) {
     pool.usersLength = pool.usersLength.plus(BigInt.fromI32(1));
     pool.users.push(to.id);
+
+    // let balance = init_balance(event.block.timestamp, to);
+    // // get current liquid from current PTK
+    // let Funds_mod = FundsModule.bind(event.address);
+    // let result = Funds_mod.calculatePoolExitInverse(event.params.value);
+    // let lBalanceCalculated = result.value1;
+    // balance.pBalance = balance.pBalance.plus(event.params.value);
+    // balance.lBalance = balance.lBalance.plus(lBalanceCalculated);
+    // balance.save();
+
     pool.save();
   }
 
@@ -97,6 +106,13 @@ export function handleDeposit(event: Deposit): void {
   if (!pool.users.includes(user.id)) {
     pool.usersLength = pool.usersLength.plus(BigInt.fromI32(1));
     pool.users.push(user.id);
+    
+    // let balance = init_balance(event.block.timestamp, user);
+    // balance.pBalance = user.pBalance.plus(event.params.pAmount);
+    // let calculated = calculate_lBalance(event.params.sender, balance.pBalance);
+    // balance.lBalance = balance.lBalance.plus(calculated);
+    // balance.save();
+
     pool.save();
   }
 }
@@ -138,7 +154,7 @@ export function handlePledgeAdded(event: PledgeAdded): void {
   let pledger = get_user(pledge.pledger);
   pledger.locked = pledger.locked.plus(event.params.lAmount);
 
-  proposal.staked = proposal.staked.plus(pledge.lAmount)
+  proposal.staked = proposal.staked.plus(pledge.lAmount);
   proposal.pledges.push(pledge.id);
   proposal.save();
 }
@@ -146,20 +162,20 @@ export function handlePledgeAdded(event: PledgeAdded): void {
 export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
   let proposal = Debt.load(event.params.proposal.toHex()) as Debt;
   let hashed = crypto
-  .keccak256(concat(event.params.sender, event.params.borrower))
-  .toHexString();
+    .keccak256(concat(event.params.sender, event.params.borrower))
+    .toHexString();
   let new_arr = filter_pledges(proposal, hashed);
-  
+
   let pledge = Pledge.load(hashed);
   pledge.pledger = event.params.sender;
   pledge.lAmount = event.params.lAmount;
   pledge.pAmount = event.params.pAmount;
   pledge.save();
-  
+
   let pledger = get_user(pledge.pledger);
   pledger.locked = pledger.locked.minus(event.params.lAmount);
-  
-  proposal.staked = proposal.staked.minus(pledge.lAmount)
+
+  proposal.staked = proposal.staked.minus(pledge.lAmount);
   proposal.pledges = new_arr;
   proposal.save();
 }
@@ -190,7 +206,7 @@ export function handleUnlockedPledgeWithdraw(event: UnlockedPledgeWithdraw): voi
   pledger.save();
 }
 
-function get_user(address: Bytes): User {
+export function get_user(address: Bytes): User {
   let user = User.load(address.toHex());
   if (user == null) {
     user = new User(address.toHex());
@@ -201,8 +217,16 @@ function get_user(address: Bytes): User {
   }
   return user as User;
 }
+export function init_balance(t: BigInt, sender: User): Balance {
+  let balance = new Balance(t.toHex());
+  balance.pBalance = BigInt.fromI32(0);
+  balance.lBalance = BigInt.fromI32(0);
+  balance.user = sender.id;
 
-function get_latest_pool(): Pool {
+  return balance as Balance;
+}
+
+export function get_latest_pool(): Pool {
   let latest_pool = Pool.load(latest_date);
   if (latest_pool == null) {
     latest_pool = new Pool(latest_date);
@@ -210,11 +234,19 @@ function get_latest_pool(): Pool {
     latest_pool.lDebt = BigInt.fromI32(0);
     latest_pool.pEnterPrice = BigInt.fromI32(0);
     latest_pool.pExitPrice = BigInt.fromI32(0);
+    latest_pool.usersLength = BigInt.fromI32(0);
     latest_pool.users = [];
   }
   return latest_pool as Pool;
 }
 
-function filter_pledges(p: Debt, hashed: string): Array<string> {
+export function filter_pledges(p: Debt, hashed: string): Array<string> {
   return p.pledges.filter(pledge => !pledge.includes(hashed));
+}
+
+export function calculate_lBalance(address: Address, pAmount: BigInt): BigInt {
+    // get current liquid from current PTK
+    let Funds_mod = FundsModule.bind(address);
+    let result = Funds_mod.calculatePoolExitInverse(pAmount);
+    return result.value0;
 }
