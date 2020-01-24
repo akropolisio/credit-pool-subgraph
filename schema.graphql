@@ -16,19 +16,24 @@ type Balance @entity{
 type Debt @entity {
   id: ID!
   debt_id: BigInt,
+  proposal_id: BigInt,
   apr: BigInt!,
   borrower: Bytes!,
   total: BigInt!,
   repayed: BigInt!,
+  pledgers: [String!]!,
   pledges: [String!]!,
   staked: BigInt!,
   status: Status!,
+  start_date: BigInt,
+  last_update: BigInt,
 }
 
 type Pledge @entity {
   id: ID!,
   proposal_id: ID!,
   pledger: Bytes!,
+  withdrawn: BigInt!,
   lAmount: BigInt!,
   pAmount: BigInt!
 }

@@ -1,7 +1,7 @@
-import { ByteArray } from "@graphprotocol/graph-ts";
+import { ByteArray, BigInt } from "@graphprotocol/graph-ts";
 
-export const DAY = 86400000;
-export const latest_date = "1287558610000";
+export let DAY = BigInt.fromI32(86400000);
+export let latest_date: BigInt = BigInt.fromI32(1287558610000 as i32);
 
 export function concat(a: ByteArray, b: ByteArray): ByteArray {
   let out = new Uint8Array(a.length + b.length);
@@ -32,4 +32,12 @@ export function concat_array(...args: Array<ByteArray>): ByteArray {
   return out as ByteArray;
 }
 
-
+/**
+ * Inverse Bonding curve
+ * S = g(x)=(x^2+ax)/b, a>0, b>0
+ */
+export function inverseCurveFunction(x: BigInt): BigInt {
+  let a = BigInt.fromI32(1);
+  let b = BigInt.fromI32(1);
+  return x.pow(2).plus(a.times(x)).div(b);
+}
