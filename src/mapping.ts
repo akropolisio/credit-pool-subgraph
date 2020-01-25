@@ -125,7 +125,6 @@ export function handleDeposit(event: Deposit): void {
 }
 
 export function handleDebtProposalCreated(event: DebtProposalCreated): void {
-  log.warning("CREATE PROPOSAL {} {}",[event.params.sender.toHex(), event.params.proposal.toHex()]);
   let debt_id = construct_debt_id(event.params.sender.toHex(), event.params.proposal.toHex());
   let proposal = new Debt(debt_id);
   proposal.proposal_id = event.params.proposal;
@@ -315,16 +314,19 @@ export function construct_pledge_id(s: string, b: string, d: string): string {
   return crypto
     .keccak256(
       concat(
-        concat(ByteArray.fromHexString(s), ByteArray.fromHexString(b)),
-        ByteArray.fromHexString(d)
+        concat(
+          ByteArray.fromHexString(normalizeLength(s)),
+          ByteArray.fromHexString(normalizeLength(b))
+        ),
+        ByteArray.fromHexString(normalizeLength(d))
       )
     )
     .toHexString();
 }
 
 export function construct_debt_id(s: string, p: string): string {
-  p = check_even(p);
-  log.warning("HASH ID account:{} id:{}",[s, p]);
+  p = normalizeLength(p);
+  s = normalizeLength(s);
   return crypto
     .keccak256(concat(ByteArray.fromHexString(s), ByteArray.fromHexString(p)))
     .toHexString();
@@ -337,11 +339,11 @@ export function filter_pledges(p: Array<string>, s: string): Array<string> {
 export function filter_pledgers(p: Array<string>, s: string): Array<string> {
   return p.filter(address => address !== s);
 }
-function check_even(p: string): string {
-  if(p.length % 2 != 0){
-    // p.replace("0x", "0x0");
-    let a = p.split("0x");
-    p = "0x00" + a[1];
+
+function normalizeLength(str: string): string {
+  let s = str.slice(2);
+  if (s.length % 2 == 1) {
+    return "0".concat(s);
   }
-  return p
+  return s;
 }
