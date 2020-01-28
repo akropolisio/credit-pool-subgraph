@@ -49,7 +49,6 @@ export function handleStatus(event: Status): void {
     for (let i = 0; i < pool.users.length; i++) {
       let user = User.load(users[i]) as User;
       let user_lBalance = calculate_lBalance(user.pBalance);
-      log.warning("HYSTORY ENTRY: {}", [user_lBalance.toHex()]);
 
       // add balance record
       let new_history_record = init_balance(event.block.timestamp, user);
@@ -65,7 +64,6 @@ export function handleStatus(event: Status): void {
     }
   }
 }
-
 
 export function handleTransfer(event: Transfer): void {
   let from = get_user(event.params.from);
@@ -111,7 +109,6 @@ export function handleTransfer(event: Transfer): void {
 export function handleDeposit(event: Deposit): void {
   let user = get_user(event.params.sender);
   let pool = get_latest_pool();
-  log.warning("DEPOSIT: FROM {} AMOUNT {}", [event.params.sender.toHex(), event.params.pAmount.toHexString()]);
   if (!pool.users.includes(user.id)) {
     pool.usersLength = pool.usersLength.plus(BigInt.fromI32(1));
 
@@ -158,7 +155,7 @@ export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
   let proposal = Debt.load(debt_id);
   let user = User.load(proposal.borrower.toHex());
   proposal.start_date = event.block.timestamp;
-  user.credit = proposal.total;
+  user.credit = user.credit.plus(proposal.total);
   user.save();
 
   proposal.last_update = event.block.timestamp;
@@ -231,24 +228,19 @@ export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
 }
 
 export function handleRepay(event: Repay): void {
-  let loan_mod = LoanModule.bind(event.address);
-  let loan_debt = loan_mod.debts(event.params.sender, event.params.debt);
-
+  let loan = LoanModule.bind(event.address);
+  let loan_debt = loan.debts(event.params.sender, event.params.debt);
   // Not `loan_debt.proposal` because of graph-cli codegen bug.
   // However, as long as Debt struct on LoanModule has proposal
   // field at the first place, it`ll work
-  let debt_id = construct_two_part_id(
-    event.params.sender.toHex(),
-    loan_debt.value0.toHex()
-  );
+  let debt_id = construct_two_part_id(event.params.sender.toHex(), loan_debt.value0.toHex());
   let debt = Debt.load(debt_id);
 
-  let repayment = event.params.lFullPaymentAmount.minus(
-    event.params.lInterestPaid
-  );
+  let repayment = event.params.lFullPaymentAmount.minus(event.params.lInterestPaid);
+  let isDebtRepayed = repayment.ge(debt.total);
   debt.repayed = debt.repayed.plus(repayment);
   debt.last_update = event.block.timestamp;
-  debt.status = "PARTIALLY_REPAYED";
+  debt.status = isDebtRepayed ? "CLOSED" : "PARTIALLY_REPAYED";
   debt.save();
 
   let user = User.load(debt.borrower.toHex());
@@ -256,9 +248,7 @@ export function handleRepay(event: Repay): void {
   user.save();
 }
 
-export function handleUnlockedPledgeWithdraw(
-  event: UnlockedPledgeWithdraw
-): void {
+export function handleUnlockedPledgeWithdraw(event: UnlockedPledgeWithdraw): void {
   let pledger = get_user(event.params.sender);
   pledger.locked = pledger.locked.minus(event.params.pAmount);
   pledger.pBalance = pledger.pBalance.plus(event.params.pAmount);
@@ -339,11 +329,7 @@ export function calculate_lBalance(pAmount: BigInt): BigInt {
   return result;
 }
 
-export function construct_three_part_id(
-  s: string,
-  b: string,
-  d: string
-): string {
+export function construct_three_part_id(s: string, b: string, d: string): string {
   return crypto
     .keccak256(
       concat(
