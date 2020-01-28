@@ -1,5 +1,6 @@
 import { ByteArray, BigInt } from "@graphprotocol/graph-ts";
 
+export let FIX = BigInt.fromI32(10).pow(18);
 export let DAY = BigInt.fromI32(86400000);
 export let latest_date: BigInt = BigInt.fromI32(1287558610000 as i32);
 
@@ -39,5 +40,5 @@ export function concat_array(...args: Array<ByteArray>): ByteArray {
 export function inverseCurveFunction(x: BigInt): BigInt {
   let a = BigInt.fromI32(1);
   let b = BigInt.fromI32(1);
-  return x.pow(2).plus(a.times(x)).div(b);
+  return x.pow(2).plus(FIX.times(a).times(x)).div(FIX.times(b));
 }
