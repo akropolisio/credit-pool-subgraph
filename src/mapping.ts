@@ -84,10 +84,6 @@ export function handleTransfer(event: Transfer): void {
     balance.lBalance = lBalanceCalculated;
     balance.date = event.block.timestamp;
     balance.save();
-
-    from.pBalance = balance.pBalance;
-    from.save()
-
     pool.save();
   }
 
@@ -104,14 +100,8 @@ export function handleTransfer(event: Transfer): void {
     balance.lBalance = balance.lBalance.plus(lBalanceCalculated);
     balance.date = event.block.timestamp;
     balance.save();
-
-    to.pBalance = balance.pBalance;
-    to.save()
-
     pool.save();
   }
-  log.warning("TRANSFER: FROM {} TO {} AMOUNT {}", [from.id, to.id, event.params.value.toHex()]);
-
   from.pBalance = from.pBalance.minus(event.params.value);
   to.pBalance = to.pBalance.plus(event.params.value);
   from.save();
