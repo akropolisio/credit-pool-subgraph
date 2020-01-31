@@ -1,7 +1,11 @@
 type User @entity {
   id: ID!
+  lBalance: BigInt!,
   pBalance: BigInt!,
-  locked: BigInt!,
+  lLockedSum: BigInt!,
+  pLockedSum: BigInt!,
+  lInterestSum: BigInt!,
+  pInterestSum: BigInt!,
   credit: BigInt!,
   history: [String!]!
 }
@@ -18,6 +22,7 @@ type Debt @entity {
   id: ID!
   debt_id: BigInt,
   proposal_id: BigInt,
+  description: Bytes!,
   apr: BigInt!,
   borrower: Bytes!,
   total: BigInt!,
@@ -26,6 +31,7 @@ type Debt @entity {
   pledges: [String!]!,
   staked: BigInt!,
   status: Status!,
+  stakeProgress: String!,
   start_date: BigInt,
   last_update: BigInt,
 }
@@ -35,8 +41,10 @@ type Pledge @entity {
   proposal_id: ID!,
   pledger: Bytes!,
   withdrawn: BigInt!,
-  lAmount: BigInt!,
-  pAmount: BigInt!
+  lLocked: BigInt!,
+  pLocked: BigInt!,
+  lInterest: BigInt!,
+  pInterest: BigInt!,
 }
 
 type Pool @entity {
