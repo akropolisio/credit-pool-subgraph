@@ -43,6 +43,8 @@ dataSources:
       eventHandlers:
         - event: Deposit(indexed address,uint256,uint256)
           handler: handleDeposit
+        - event: Withdraw(indexed address,uint256,uint256,uint256)
+          handler: handleWithdraw
       file: ./src/mapping.ts
   - kind: ethereum/contract
     name: LoanModule
@@ -62,11 +64,12 @@ dataSources:
         - DebtProposalExecuted
         - Repay
         - UnlockedPledgeWithdraw
+        - DebtDefaultExecuted
       abis:
         - name: LoanModule
           file: ./abis/LoanModule.json
       eventHandlers:
-        - event: DebtProposalCreated(indexed address,uint256,uint256,uint256)
+        - event: DebtProposalCreated(indexed address,uint256,uint256,uint256,bytes32)
           handler: handleDebtProposalCreated
         - event: PledgeAdded(indexed address,indexed address,uint256,uint256,uint256)
           handler: handlePledgeAdded
@@ -74,10 +77,12 @@ dataSources:
           handler: handlePledgeWithdrawn
         - event: DebtProposalExecuted(indexed address,uint256,uint256,uint256)
           handler: handleDebtProposalExecuted
-        - event: Repay(indexed address,uint256,uint256,uint256,uint256,uint256)
+        - event: Repay(indexed address,uint256,uint256,uint256,uint256,uint256,uint256)
           handler: handleRepay
         - event: UnlockedPledgeWithdraw(indexed address,indexed address,uint256,uint256,uint256)
           handler: handleUnlockedPledgeWithdraw
+        - event: DebtDefaultExecuted(indexed address,uint256,uint256)
+          handler: handleDebtDefaultExecuted
       file: ./src/mapping.ts
   - kind: ethereum/contract
     name: PToken
