@@ -220,18 +220,20 @@ export function handlePledgeAdded(event: PledgeAdded): void {
     event.params.proposal.toHex()
   );
   let proposal = Debt.load(debt_id) as Debt;
-  let hash = construct_two_part_id(
+  let pledge_hash = construct_two_part_id(
     event.params.sender.toHex(),
-    event.params.proposal.toHex()
+    event.params.borrower.toHex().concat(event.params.proposal.toHex())
   );
 
   // decrease balance and increase locked
   let pledger = get_user(event.params.sender);
-  let pledge = get_pledge(hash);
+  let pledge = get_pledge(pledge_hash);
   let l_to_add = lProportional(event.params.pAmount, pledger);
   pledge.pledger = event.params.sender;
   pledge.lLocked = pledge.lLocked.plus(l_to_add);
   pledge.pLocked = pledge.pLocked.plus(event.params.pAmount);
+  pledge.lInitialLocked = pledge.lLocked;
+  pledge.pInitialLocked = pledge.pLocked;
   pledge.proposal_id = proposal.id;
   pledge.save();
 
@@ -249,6 +251,7 @@ export function handlePledgeAdded(event: PledgeAdded): void {
     new_pledgers.push(pledger.id);
     proposal.pledgers = new_pledgers;
   }
+
   // same with pledge list
   if (!contains_pledge(new_pledges, pledge.id)) {
     new_pledges.push(pledge.id);
@@ -267,14 +270,14 @@ export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
     event.params.proposal.toHex()
   );
   let proposal = Debt.load(debt_id) as Debt;
-  let hash = construct_two_part_id(
+  let pledge_hash = construct_two_part_id(
     event.params.sender.toHex(),
-    event.params.proposal.toHex()
+    event.params.borrower.toHex().concat(event.params.proposal.toHex())
   );
 
   // decrease locked and increase balance
   let pledger = get_user(event.params.sender);
-  let pledge = get_pledge(hash);
+  let pledge = get_pledge(pledge_hash);
   let p_to_sub = event.params.pAmount;
   let l_to_sub = lProportional(event.params.pAmount, pledger);
   pledge.pledger = event.params.sender;
@@ -296,7 +299,7 @@ export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
   if (pledge.pLocked.le(BigInt.fromI32(0))) {
     let new_pledgers = proposal.pledgers;
     let new_pledges = proposal.pledges;
-    new_pledges = filter_pledges(new_pledges, hash);
+    new_pledges = filter_pledges(new_pledges, pledge_hash);
     new_pledgers = filter_pledgers(proposal.pledgers, pledger.id);
     proposal.pledgers = new_pledgers;
     proposal.pledges = new_pledges;
@@ -330,8 +333,11 @@ export function handleRepay(event: Repay): void {
   debt.status = isDebtRepayed ? "CLOSED" : "PARTIALLY_REPAYED";
   debt.save();
 
-  // update all pledges interests
-  update_pledges(debt, event.params.lInterestPaid, event.params.pInterestPaid);
+  charge_repay_interest(
+    debt,
+    event.params.lInterestPaid,
+    event.params.pInterestPaid
+  );
 
   let user = User.load(debt.borrower.toHex());
   user.credit = user.credit.minus(repayment);
@@ -347,33 +353,28 @@ export function handleRepay(event: Repay): void {
 export function handleUnlockedPledgeWithdraw(
   event: UnlockedPledgeWithdraw
 ): void {
-  let hash = construct_two_part_id(
+  let pledge_hash = construct_two_part_id(
     event.params.sender.toHex(),
-    event.params.proposal.toHex()
+    event.params.borrower.toHex().concat(event.params.proposal.toHex())
   );
-  let pledge = get_pledge(hash);
+  let pledge = get_pledge(pledge_hash);
   let pledger = get_user(event.params.sender);
-  let pWithdrawnInterest = pledge.pInterest;
   let pUnlockedPledge = event.params.pAmount.minus(pledge.pInterest);
 
-  let l_to_unlock = pledge.lLocked
-    .times(pUnlockedPledge)
-    .div(pledge.pLocked)
-    .plus(pledge.lInterest);
+  let l_to_unlock = pledge.lLocked.times(pUnlockedPledge).div(pledge.pLocked);
 
-  // TODO: not sure its right...
-  // in fact the whole mapping is confusing as hell
+  pledger.pBalance = pledger.pBalance
+    .plus(pUnlockedPledge)
+    .plus(pledge.pInterest);
+  pledger.lBalance = pledger.lBalance.plus(l_to_unlock.plus(pledge.lInterest));
   pledger.lLockedSum = pledger.lLockedSum.minus(l_to_unlock);
-  pledger.pLockedSum = pledger.pLockedSum.minus(event.params.pAmount);
-
-  pledger.pBalance = pledger.pBalance.plus(event.params.pAmount);
-  pledger.lBalance = pledger.lBalance.plus(l_to_unlock);
+  pledger.pLockedSum = pledger.pLockedSum.minus(pUnlockedPledge);
   pledger.save();
 
-  pledge.lLocked = pledge.lLocked.minus(
-    pledge.lLocked.times(pUnlockedPledge.div(pledge.pLocked))
-  );
+  pledge.lLocked = pledge.lLocked.minus(l_to_unlock);
   pledge.pLocked = pledge.pLocked.minus(pUnlockedPledge);
+  pledge.lInterest = BigInt.fromI32(0);
+  pledge.pInterest = BigInt.fromI32(0);
   pledge.withdrawn = pledge.withdrawn.plus(event.params.pAmount);
   pledge.save();
 
@@ -385,6 +386,7 @@ export function handleUnlockedPledgeWithdraw(
     );
     let debt = Debt.load(debt_id) as Debt;
     debt.pledgers = filter_pledgers(debt.pledgers, pledger.id);
+    debt.pledges = filter_pledges(debt.pledges, pledge.id);
     debt.save();
   }
 }
@@ -399,6 +401,8 @@ export function handleDebtDefaultExecuted(event: DebtDefaultExecuted): void {
   );
   let debt = Debt.load(debt_id) as Debt;
   let credit_left = debt.total.minus(debt.repayed);
+
+  default_pledge_interests(debt, event.params.pBurned);
 
   // update pool
   pool.lDebt = pool.lDebt.minus(credit_left);
@@ -424,6 +428,8 @@ export function get_pledge(hash: string): Pledge {
   let pledge = Pledge.load(hash);
   if (pledge == null) {
     pledge = new Pledge(hash);
+    pledge.lInitialLocked = BigInt.fromI32(0);
+    pledge.pInitialLocked = BigInt.fromI32(0);
     pledge.lLocked = BigInt.fromI32(0);
     pledge.pLocked = BigInt.fromI32(0);
     pledge.lInterest = BigInt.fromI32(0);
@@ -477,7 +483,8 @@ export function calculate_lBalance(pAmount: BigInt): BigInt {
   return result;
 }
 
-export function update_pledges(
+// update all pledges interests after repay
+export function charge_repay_interest(
   debt: Debt,
   lInterest: BigInt,
   pInterest: BigInt
@@ -498,10 +505,75 @@ export function update_pledges(
   }
 }
 
+// reset interest of pledgers and transfer all interests to balances
+// as well as ditribute borrowers locked pTokens among the pledgers
+export function default_pledge_interests(debt: Debt, pBurned: BigInt): void {
+  for (let i = 0; i < debt.pledges.length; i++) {
+    let pledges = debt.pledges;
+    let pledge = get_pledge(pledges[i]);
+    let user = get_user(pledge.pledger);
+    if (pledge.pledger !== debt.borrower) {
+      let borrower_pledge = get_borrower_pledge(debt);
+      let lBorrowerPledge = borrower_pledge.lLocked;
+      let pBorrowerPledge = borrower_pledge.pLocked;
+      let lInitialDebtPledge = get_total_lInitialLocked(debt.pledges);
+      let pInitialDebtPledge = get_total_pInitialLocked(debt.pledges);
+      let lInitialUserPledge = pledge.lInitialLocked;
+      let pInitialUserPledge = pledge.pInitialLocked;
+
+      let pBurnedUserPledge = pBurned
+        .times(pInitialUserPledge)
+        .div(pInitialDebtPledge);
+      let lUnlockedBorrowerPledge = lBorrowerPledge
+        .times(pInitialDebtPledge.minus(pBurned))
+        .div(pInitialDebtPledge);
+
+      let pUnlockedBorrowerPledge = pBorrowerPledge
+        .times(pInitialDebtPledge.minus(pBurned))
+        .div(pInitialDebtPledge);
+
+      let l_to_sub = pledge.lLocked
+        .times(pBurnedUserPledge)
+        .div(pledge.pLocked);
+      let l_to_add = lUnlockedBorrowerPledge.times(
+        lInitialUserPledge.div(lInitialDebtPledge.minus(lBorrowerPledge))
+      );
+      let p_to_sub = pBurnedUserPledge.plus(
+        pUnlockedBorrowerPledge
+          .times(lInitialUserPledge)
+          .div(lInitialDebtPledge.minus(lBorrowerPledge))
+      );
+      pledge.lLocked = pledge.lLocked.minus(l_to_sub).plus(l_to_add);
+      pledge.pLocked = pledge.pLocked.minus(p_to_sub);
+
+      user.lLockedSum = user.lLockedSum.minus(l_to_sub).plus(l_to_add);
+      user.pLockedSum = user.pLockedSum.minus(p_to_sub);
+
+      pledge.save();
+      user.save();
+    } else {
+      user.lInterestSum = user.lInterestSum.minus(pledge.lInterest);
+      user.pInterestSum = user.pInterestSum.minus(pledge.pInterest);
+      pledge.pInterest = BigInt.fromI32(0);
+      pledge.lInterest = BigInt.fromI32(0);
+      pledge.save();
+      user.save();
+    }
+  }
+}
+
 export function lProportional(pAmount: BigInt, user: User): BigInt {
   // decrease liquidity tokens proportionally with PTK difference
-  // lBalance = lBalance * (pAmount/pBalance)
+  // lBalance * (pAmount/pBalance)
   return user.lBalance.times(pAmount.div(user.pBalance));
+}
+
+export function get_borrower_pledge(proposal: Debt): Pledge {
+  let pledge_hash = construct_two_part_id(
+    proposal.borrower.toHex(),
+    proposal.borrower.toHex().concat(proposal.id)
+  );
+  return get_pledge(pledge_hash);
 }
 
 export function calculate_progress(proposal: Debt): string {
@@ -535,6 +607,34 @@ export function construct_two_part_id(s: string, p: string): string {
   return crypto
     .keccak256(concat(ByteArray.fromHexString(s), ByteArray.fromHexString(p)))
     .toHexString();
+}
+
+// function reducer(acc: BigInt, value: string, i: number, a: string[]): BigInt {
+//   let n = value as i32;
+//   return acc.plus(BigInt.fromI32(n));
+// }
+// return d.pledges.reduce(reducer, BigInt.fromI32(0));
+
+export function get_total_lInitialLocked(pledges: string[]): BigInt {
+  let sum = BigInt.fromI32(0);
+  for (let i = 0; i < pledges.length; i++) {
+    let pledge = get_pledge(pledges[i]);
+    let value = pledge.lInitialLocked;
+    sum.plus(value);
+  }
+
+  return sum;
+}
+
+export function get_total_pInitialLocked(pledges: string[]): BigInt {
+  let sum = BigInt.fromI32(0);
+  for (let i = 0; i < pledges.length; i++) {
+    let pledge = get_pledge(pledges[i]);
+    let value = pledge.pInitialLocked;
+    sum.plus(value);
+  }
+
+  return sum;
 }
 
 // AssemblyScript types workarounds
