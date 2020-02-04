@@ -41,6 +41,8 @@ type Pledge @entity {
   proposal_id: ID!,
   pledger: Bytes!,
   withdrawn: BigInt!,
+  lInitialLocked: BigInt!,
+  pInitialLocked: BigInt!,
   lLocked: BigInt!,
   pLocked: BigInt!,
   lInterest: BigInt!,
