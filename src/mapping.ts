@@ -279,7 +279,7 @@ export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
   let pledger = get_user(event.params.sender);
   let pledge = get_pledge(pledge_hash);
   let p_to_sub = event.params.pAmount;
-  let l_to_sub = lProportional(event.params.pAmount, pledger);
+  let l_to_sub = lProportional_out(event.params.pAmount, pledge);
   pledge.pledger = event.params.sender;
   pledge.lLocked = pledge.lLocked.minus(l_to_sub);
   pledge.pLocked = pledge.pLocked.minus(p_to_sub);
@@ -564,8 +564,13 @@ export function default_pledge_interests(debt: Debt, pBurned: BigInt): void {
 
 export function lProportional(pAmount: BigInt, user: User): BigInt {
   // decrease liquidity tokens proportionally with PTK difference
-  // lBalance * (pAmount/pBalance)
-  return user.lBalance.times(pAmount.div(user.pBalance));
+  // lBalance * pAmount / pBalance
+  return user.lBalance.times(pAmount).div(user.pBalance);
+}
+export function lProportional_out(pAmount: BigInt, pledge: Pledge): BigInt {
+  // decrease liquidity tokens proportionally with PTK difference
+  // lBalance * pAmount / pBalance
+  return pledge.lLocked.times(pAmount).div(pledge.pLocked);
 }
 
 export function get_borrower_pledge(proposal: Debt): Pledge {
