@@ -15,7 +15,7 @@ import {
   UnlockedPledgeWithdraw,
   DebtDefaultExecuted
 } from "../generated/LoanModule/LoanModule";
-import { User, Debt, Balance, Pool, Pledge } from "../generated/schema";
+import { User, Debt, Balance, ExitBalance, Pool, Pledge } from "../generated/schema";
 import {
   concat,
   latest_date,
@@ -46,22 +46,22 @@ export function handleStatus(event: Status): void {
   // add new balance in history for all users once a day
   // TEST: will only work if timestamp returned in ms
   let today = event.block.timestamp.div(DAY);
-  let balance = Balance.load(today.toHex());
+  let exit_balance = ExitBalance.load(today.toHex());
 
   // once a day
-  if (balance == null) {
-    balance = new Balance(today.toHex());
-    balance.user = latest_date.toHex();
-    balance.date = event.block.timestamp;
-    balance.lBalance = BigInt.fromI32(0);
-    balance.pBalance = BigInt.fromI32(0);
+  if (exit_balance == null) {
+    exit_balance = new ExitBalance(today.toHex());
+    exit_balance.user = latest_date.toHex();
+    exit_balance.date = event.block.timestamp;
+    exit_balance.lBalance = BigInt.fromI32(0);
+    exit_balance.pBalance = BigInt.fromI32(0);
 
     let users = pool.users as Array<string>;
     for (let i = 0; i < pool.users.length; i++) {
       let user = User.load(users[i]) as User;
 
-      // add balance record
-      let new_history_record = init_balance(event.block.timestamp, user);
+      // add exit_balance record
+      let new_history_record = init_exit_balance(event.block.timestamp, user);
       new_history_record.pBalance = user.pBalance;
       new_history_record.lBalance = user.lBalance;
       new_history_record.date = event.block.timestamp;
@@ -93,27 +93,41 @@ export function handleTransfer(event: Transfer): void {
     new_users.push(to.id);
     pool.users = new_users;
   }
+  pool.save();
 
   // add balance from
-  let from_balance = get_balance(event.block.timestamp, from);
+  let from_balance = get_balance(from);
   from_balance.pBalance = from.pBalance.minus(event.params.value);
   let from_lBalanceCalculated = calculate_lBalance(from_balance.pBalance);
   from_balance.lBalance = from_lBalanceCalculated;
-  from_balance.date = event.block.timestamp;
   from_balance.save();
 
+  // add exit_balance from
+  let from_exit_balance = get_exit_balance(event.block.timestamp, from);
+  from_exit_balance.pBalance = from.pBalance.minus(event.params.value);
+  let from_exit_lBalanceCalculated = calculate_lBalance(from_exit_balance.pBalance);
+  from_exit_balance.lBalance = from_exit_lBalanceCalculated;
+  from_exit_balance.date = event.block.timestamp;
+  from_exit_balance.save();
+
   // add balance to
-  let to_balance = get_balance(event.block.timestamp, to);
+  let to_balance = get_balance(to);
   to_balance.pBalance = to.pBalance.plus(event.params.value);
   let to_lBalanceCalculated = calculate_lBalance(to_balance.pBalance);
   to_balance.lBalance = to_balance.lBalance.plus(to_lBalanceCalculated);
-  to_balance.date = event.block.timestamp;
   to_balance.save();
-  pool.save();
 
-  // update actual pBalances
-  from.pBalance = from_balance.pBalance;
-  to.pBalance = to_balance.pBalance;
+  // add exit_balance to
+  let to_exit_balance = get_exit_balance(event.block.timestamp, to);
+  to_exit_balance.pBalance = to.pBalance.plus(event.params.value);
+  let to_exit_lBalanceCalculated = calculate_lBalance(to_exit_balance.pBalance);
+  to_exit_balance.lBalance = to_balance.lBalance.plus(to_exit_lBalanceCalculated);
+  to_exit_balance.date = event.block.timestamp;
+  to_exit_balance.save();
+
+  // update actual Users pBalances
+  from.pBalance = from_exit_balance.pBalance;
+  to.pBalance = to_exit_balance.pBalance;
   from.save();
   to.save();
 }
@@ -129,12 +143,19 @@ export function handleDeposit(event: Deposit): void {
   }
 
   // add balance
-  let balance = get_balance(event.block.timestamp, user);
+  let balance = get_balance(user);
   balance.pBalance = user.pBalance.plus(event.params.pAmount);
   let calculated = calculate_lBalance(balance.pBalance);
   balance.lBalance = balance.lBalance.plus(calculated);
-  balance.date = event.block.timestamp;
   balance.save();
+
+  // add exit_balance
+  let exit_balance = get_exit_balance(event.block.timestamp, user);
+  exit_balance.pBalance = user.pBalance.plus(event.params.pAmount);
+  let exit_calculated = calculate_lBalance(exit_balance.pBalance);
+  exit_balance.lBalance = balance.lBalance.plus(exit_calculated);
+  exit_balance.date = event.block.timestamp;
+  exit_balance.save();
 
   // update user balance
   user.pBalance = user.pBalance.plus(event.params.pAmount);
@@ -156,11 +177,17 @@ export function handleWithdraw(event: Withdraw): void {
   user.save();
 
   // add balance
-  let balance = get_balance(event.block.timestamp, user);
+  let balance = get_balance(user);
   balance.pBalance = user.pBalance;
   balance.lBalance = user.lBalance;
-  balance.date = event.block.timestamp;
   balance.save();
+
+  // add exit_balance
+  let exit_balance = get_exit_balance(event.block.timestamp, user);
+  exit_balance.pBalance = user.pBalance;
+  exit_balance.lBalance = user.lBalance;
+  exit_balance.date = event.block.timestamp;
+  exit_balance.save();
 
   // update pool balance
   pool.lBalance = pool.lBalance.minus(event.params.lAmountTotal);
@@ -447,22 +474,39 @@ export function get_pledge(hash: String): Pledge {
   return pledge as Pledge;
 }
 
-export function get_balance(t: BigInt, sender: User): Balance {
-  let balance = Balance.load(construct_two_part_id(t.toHex(), sender.id));
+export function get_balance(sender: User): Balance {
+  let balance = Balance.load(sender.id);
   if (balance == null) {
-    balance = init_balance(t, sender);
+    balance = init_balance(sender);
   }
   return balance as Balance;
 }
 
-export function init_balance(t: BigInt, sender: User): Balance {
-  let balance = new Balance(construct_two_part_id(t.toHex(), sender.id));
+export function get_exit_balance(t: BigInt, sender: User): ExitBalance {
+  let exit_balance = ExitBalance.load(construct_two_part_id(t.toHex(), sender.id));
+  if (exit_balance == null) {
+    exit_balance = init_exit_balance(t, sender);
+  }
+  return exit_balance as ExitBalance;
+}
+
+export function init_balance(sender: User): Balance {
+  let balance = new Balance(sender.id);
   balance.pBalance = BigInt.fromI32(0);
   balance.lBalance = BigInt.fromI32(0);
   balance.user = sender.id;
-  balance.date = t;
 
   return balance as Balance;
+}
+
+export function init_exit_balance(t: BigInt, sender: User): ExitBalance {
+  let exit_balance = new ExitBalance(construct_two_part_id(t.toHex(), sender.id));
+  exit_balance.pBalance = BigInt.fromI32(0);
+  exit_balance.lBalance = BigInt.fromI32(0);
+  exit_balance.user = sender.id;
+  exit_balance.date = t;
+
+  return exit_balance as ExitBalance;
 }
 
 export function get_latest_pool(): Pool {
