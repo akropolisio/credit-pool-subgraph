@@ -76,8 +76,8 @@ export function handleStatus(event: Status): void {
 }
 
 export function handleTransfer(event: Transfer): void {
-  let from = get_user(event.params.from);
-  let to = get_user(event.params.to);
+  let from = get_user(event.params.from.toHexString());
+  let to = get_user(event.params.to.toHexString());
   let pool = get_latest_pool();
 
   // update pool users if necessary
@@ -119,7 +119,7 @@ export function handleTransfer(event: Transfer): void {
 }
 
 export function handleDeposit(event: Deposit): void {
-  let user = get_user(event.params.sender);
+  let user = get_user(event.params.sender.toHexString());
   let pool = get_latest_pool();
   if (!pool.users.includes(user.id)) {
     pool.usersLength = pool.usersLength.plus(BigInt.fromI32(1));
@@ -148,7 +148,7 @@ export function handleDeposit(event: Deposit): void {
 
 export function handleWithdraw(event: Withdraw): void {
   let pool = get_latest_pool();
-  let user = get_user(event.params.sender);
+  let user = get_user(event.params.sender.toHexString());
   user.lBalance = user.lBalance.minus(
     lProportional(event.params.pAmount, user)
   );
@@ -168,13 +168,14 @@ export function handleWithdraw(event: Withdraw): void {
 }
 
 export function handleDebtProposalCreated(event: DebtProposalCreated): void {
-  let debt_id = construct_two_part_id(
-    event.params.sender.toHex(),
-    event.params.proposal.toHex()
+    let debt_id = debtProposalId(
+      event.params.sender.toHexString(),
+      event.params.proposal.toHex()
   );
+
   let proposal = new Debt(debt_id);
-  proposal.proposal_id = event.params.proposal;
-  proposal.borrower = event.params.sender;
+  proposal.proposal_id = event.params.proposal.toHex();
+  proposal.borrower = event.params.sender.toHexString();
   proposal.description = event.params.descriptionHash;
   proposal.total = event.params.lAmount;
   proposal.apr = event.params.interest;
@@ -187,6 +188,7 @@ export function handleDebtProposalCreated(event: DebtProposalCreated): void {
   proposal.save();
 }
 
+
 export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
   let pool = get_latest_pool();
   let debt_id = construct_two_part_id(
@@ -196,7 +198,7 @@ export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
   let proposal = Debt.load(debt_id) as Debt;
 
   // update current user credit
-  let user = User.load(proposal.borrower.toHex());
+  let user = User.load(proposal.borrower);
   user.credit = user.credit.plus(proposal.total);
   user.save();
 
@@ -215,21 +217,26 @@ export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
 
 // (!) - hight concentration edit only
 export function handlePledgeAdded(event: PledgeAdded): void {
-  let debt_id = construct_two_part_id(
-    event.params.borrower.toHex(),
-    event.params.proposal.toHex()
+  let proposal_id = event.params.proposal.toHex();
+  let debt_id = debtProposalId(
+    event.params.borrower.toHexString(),
+    proposal_id
   );
   let proposal = Debt.load(debt_id) as Debt;
+  if (proposal == null) {
+    log.warning("DebtProposal not found, proposalId: {}. qed", [proposal_id]);
+    return;
+  }
   let pledge_hash = construct_two_part_id(
-    event.params.sender.toHex(),
-    event.params.borrower.toHex().concat(event.params.proposal.toHex())
+    event.params.sender.toHexString(),
+    event.params.borrower.toHexString().slice(2).concat(event.params.proposal.toHex().slice(2))
   );
 
   // decrease balance and increase locked
-  let pledger = get_user(event.params.sender);
+  let pledger = get_user(event.params.sender.toHexString());
   let pledge = get_pledge(pledge_hash);
   let l_to_add = lProportional(event.params.pAmount, pledger);
-  pledge.pledger = event.params.sender;
+  pledge.pledger = event.params.sender.toHexString();
   pledge.lLocked = pledge.lLocked.plus(l_to_add);
   pledge.pLocked = pledge.pLocked.plus(event.params.pAmount);
   pledge.lInitialLocked = pledge.lLocked;
@@ -244,8 +251,8 @@ export function handlePledgeAdded(event: PledgeAdded): void {
   pledger.pBalance = pledger.pBalance.minus(event.params.pAmount);
   pledger.save();
 
-  let new_pledgers = proposal.pledgers;
-  let new_pledges = proposal.pledges;
+  var new_pledgers = proposal.pledgers;
+  var new_pledges = proposal.pledges;
   // add new pledger if he is not in a list already
   if (!contains_pledger(new_pledgers, pledger.id)) {
     new_pledgers.push(pledger.id);
@@ -276,11 +283,11 @@ export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
   );
 
   // decrease locked and increase balance
-  let pledger = get_user(event.params.sender);
+  let pledger = get_user(event.params.sender.toHexString());
   let pledge = get_pledge(pledge_hash);
   let p_to_sub = event.params.pAmount;
   let l_to_sub = lProportional(event.params.pAmount, pledger);
-  pledge.pledger = event.params.sender;
+  pledge.pledger = event.params.sender.toHexString();
   pledge.lLocked = pledge.lLocked.minus(l_to_sub);
   pledge.pLocked = pledge.pLocked.minus(p_to_sub);
   pledge.proposal_id = proposal.id;
@@ -339,7 +346,7 @@ export function handleRepay(event: Repay): void {
     event.params.pInterestPaid
   );
 
-  let user = User.load(debt.borrower.toHex());
+  let user = User.load(debt.borrower);
   user.credit = user.credit.minus(repayment);
   user.save();
 
@@ -358,7 +365,7 @@ export function handleUnlockedPledgeWithdraw(
     event.params.borrower.toHex().concat(event.params.proposal.toHex())
   );
   let pledge = get_pledge(pledge_hash);
-  let pledger = get_user(event.params.sender);
+  let pledger = get_user(event.params.sender.toHexString());
   let pUnlockedPledge = event.params.pAmount.minus(pledge.pInterest);
 
   let l_to_unlock = pledge.lLocked.times(pUnlockedPledge).div(pledge.pLocked);
@@ -409,10 +416,10 @@ export function handleDebtDefaultExecuted(event: DebtDefaultExecuted): void {
   pool.save();
 }
 
-export function get_user(address: Bytes): User {
-  let user = User.load(address.toHex());
+export function get_user(address: String): User {
+  let user = User.load(address);
   if (user == null) {
-    user = new User(address.toHex());
+    user = new User(address);
     user.lBalance = BigInt.fromI32(0);
     user.pBalance = BigInt.fromI32(0);
     user.lLockedSum = BigInt.fromI32(0);
@@ -424,7 +431,7 @@ export function get_user(address: Bytes): User {
   }
   return user as User;
 }
-export function get_pledge(hash: string): Pledge {
+export function get_pledge(hash: String): Pledge {
   let pledge = Pledge.load(hash);
   if (pledge == null) {
     pledge = new Pledge(hash);
@@ -570,8 +577,8 @@ export function lProportional(pAmount: BigInt, user: User): BigInt {
 
 export function get_borrower_pledge(proposal: Debt): Pledge {
   let pledge_hash = construct_two_part_id(
-    proposal.borrower.toHex(),
-    proposal.borrower.toHex().concat(proposal.id)
+    proposal.borrower,
+    proposal.borrower.concat(proposal.id)
   );
   return get_pledge(pledge_hash);
 }
@@ -660,4 +667,8 @@ function normalizeLength(str: string): string {
     return "0".concat(s);
   }
   return s;
+}
+
+function debtProposalId(address: String, proposalId: String): String {
+  return construct_two_part_id(address, proposalId)
 }
