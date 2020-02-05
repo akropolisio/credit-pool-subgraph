@@ -108,15 +108,6 @@ export function handleTransfer(event: Transfer): void {
   to_exit_balance.lBalance = to_exit_balance.lBalance.plus(to_exit_lBalanceCalculated);
   to_exit_balance.date = event.block.timestamp;
   to_exit_balance.save();
-
-  // update actual Users pBalances
-  from.pBalance = from_exit_balance.pBalance;
-  to.pBalance = to_exit_balance.pBalance;
-  from.save();
-  to.save();
-
-  createNewUserSnapshot(from, event.block.timestamp);
-  createNewUserSnapshot(to, event.block.timestamp);
 }
 
 export function handleDeposit(event: Deposit): void {
