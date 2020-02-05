@@ -15,7 +15,7 @@ import {
   UnlockedPledgeWithdraw,
   DebtDefaultExecuted
 } from "../generated/LoanModule/LoanModule";
-import { User, Debt, Balance, ExitBalance, Pool, Pledge } from "../generated/schema";
+import { User, UserSnapshot, Debt, ExitBalance, Pool, Pledge } from "../generated/schema";
 import {
   concat,
   latest_date,
@@ -72,7 +72,7 @@ export function handleStatus(event: Status): void {
       user.history = new_history;
       user.save();
 
-      // createNewBalance(user, event.block.timestamp); // don't need, because updated in handleTransfer
+      // createNewUserSnapshot(user, event.block.timestamp); // don't need, because updated in handleTransfer
     }
   }
 }
@@ -119,8 +119,8 @@ export function handleTransfer(event: Transfer): void {
   from.save();
   to.save();
 
-  createNewBalance(from, event.block.timestamp);
-  createNewBalance(to, event.block.timestamp);
+  createNewUserSnapshot(from, event.block.timestamp);
+  createNewUserSnapshot(to, event.block.timestamp);
 }
 
 export function handleDeposit(event: Deposit): void {
@@ -138,7 +138,7 @@ export function handleDeposit(event: Deposit): void {
   user.lBalance = user.lBalance.plus(event.params.lAmount);
   user.save();
 
-  createNewBalance(user, event.block.timestamp);
+  createNewUserSnapshot(user, event.block.timestamp);
 
   // update pool balance
   pool.lBalance = event.params.lAmount;
@@ -154,7 +154,7 @@ export function handleWithdraw(event: Withdraw): void {
   user.pBalance = user.pBalance.minus(event.params.pAmount);
   user.save();
 
-  createNewBalance(user, event.block.timestamp);
+  createNewUserSnapshot(user, event.block.timestamp);
 
   // update pool balance
   pool.lBalance = pool.lBalance.minus(event.params.lAmountTotal);
@@ -196,7 +196,7 @@ export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
   user.credit = user.credit.plus(proposal.total);
   user.save();
 
-  createNewBalance(user, event.block.timestamp);
+  createNewUserSnapshot(user, event.block.timestamp);
 
   // update debt proposal
   proposal.start_date = event.block.timestamp;
@@ -247,7 +247,7 @@ export function handlePledgeAdded(event: PledgeAdded): void {
   pledger.pBalance = pledger.pBalance.minus(event.params.pAmount);
   pledger.save();
 
-  createNewBalance(pledger, event.block.timestamp);
+  createNewUserSnapshot(pledger, event.block.timestamp);
 
   var new_pledgers = proposal.pledgers;
   var new_pledges = proposal.pledges;
@@ -297,7 +297,7 @@ export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
   pledger.pBalance = pledger.pBalance.plus(p_to_sub);
   pledger.save();
 
-  createNewBalance(pledger, event.block.timestamp);
+  createNewUserSnapshot(pledger, event.block.timestamp);
 
   proposal.staked = proposal.staked.minus(l_to_sub);
   proposal.stakeProgress = calculate_progress(proposal);
@@ -350,7 +350,7 @@ export function handleRepay(event: Repay): void {
   user.credit = user.credit.minus(repayment);
   user.save();
 
-  createNewBalance(user, event.block.timestamp);
+  createNewUserSnapshot(user, event.block.timestamp);
 
   // update pool
   pool.lBalance = pool.lBalance.plus(event.params.lFullPaymentAmount);
@@ -380,7 +380,7 @@ export function handleUnlockedPledgeWithdraw(
   pledger.pLockedSum = pledger.pLockedSum.minus(pUnlockedPledge);
   pledger.save();
 
-  createNewBalance(pledger, event.block.timestamp);
+  createNewUserSnapshot(pledger, event.block.timestamp);
 
   pledge.lLocked = pledge.lLocked.minus(l_to_unlock);
   pledge.pLocked = pledge.pLocked.minus(pUnlockedPledge);
@@ -682,20 +682,20 @@ function debtProposalId(address: String, proposalId: String): String {
   return construct_two_part_id(address, proposalId)
 }
 
-function createNewBalance(user: User | null, timestamp: BigInt): void {
+function createNewUserSnapshot(user: User | null, timestamp: BigInt): void {
   if (user == null) {
     log.warning("User is null. qed", []);
     return;
   }
-  let balance = new Balance(construct_two_part_id(timestamp.toHex(), user.id));
-  balance.date = timestamp;
-  balance.user = user.id;
-  balance.lBalance = user.lBalance;
-  balance.pBalance = user.pBalance;
-  balance.lLockedSum = user.lLockedSum;
-  balance.pLockedSum = user.pLockedSum;
-  balance.lInterestSum = user.lInterestSum;
-  balance.pInterestSum = user.pInterestSum;
-  balance.credit = user.credit;
-  balance.save();
+  let user_snapshot = new UserSnapshot(construct_two_part_id(timestamp.toHex(), user.id));
+  user_snapshot.date = timestamp;
+  user_snapshot.user = user.id;
+  user_snapshot.lBalance = user.lBalance;
+  user_snapshot.pBalance = user.pBalance;
+  user_snapshot.lLockedSum = user.lLockedSum;
+  user_snapshot.pLockedSum = user.pLockedSum;
+  user_snapshot.lInterestSum = user.lInterestSum;
+  user_snapshot.pInterestSum = user.pInterestSum;
+  user_snapshot.credit = user.credit;
+  user_snapshot.save();
 }
