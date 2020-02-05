@@ -512,6 +512,8 @@ export function charge_repay_interest(
       user.lInterestSum = user.lInterestSum.plus(lInterest.times(pledger_rate));
       user.pInterestSum = user.pInterestSum.plus(pInterest.times(pledger_rate));
       user.save();
+
+      createNewUserSnapshot(user, event.block.timestamp);
     }
   }
 }
@@ -562,6 +564,8 @@ export function default_pledge_interests(debt: Debt, pBurned: BigInt): void {
 
       pledge.save();
       user.save();
+
+      createNewUserSnapshot(user, event.block.timestamp);
     } else {
       user.lInterestSum = user.lInterestSum.minus(pledge.lInterest);
       user.pInterestSum = user.pInterestSum.minus(pledge.pInterest);
@@ -569,6 +573,8 @@ export function default_pledge_interests(debt: Debt, pBurned: BigInt): void {
       pledge.lInterest = BigInt.fromI32(0);
       pledge.save();
       user.save();
+
+      createNewUserSnapshot(user, event.block.timestamp);
     }
   }
 }
