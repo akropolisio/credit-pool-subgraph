@@ -515,7 +515,7 @@ export function default_pledge_interests(debt: Debt, pBurned: BigInt, timestamp:
     let pledge = get_pledge(pledges[i]);
     let user = get_user(pledge.pledger);
     if (pledge.pledger !== debt.borrower) {
-      let pledge_hash = pledgeId(pledge.pledger, debt.borrower, debt.id);
+      let pledge_hash = pledgeId(pledge.pledger, debt.borrower, debt.proposal_id);
       let borrower_pledge = get_pledge(pledge_hash);
       let lBorrowerPledge = borrower_pledge.lLocked;
       let pBorrowerPledge = borrower_pledge.pLocked;
@@ -670,13 +670,13 @@ function debtProposalId(address: String, proposalId: String): String {
   return construct_two_part_id(address, proposalId);
 }
 
-function pledgeIdFromRaw(sender: Address, borrower: Address, proposalId: BigInt): String {
-  return pledgeId(sender.toHexString(), borrower.toHexString(), proposalId.toHex())
+function pledgeIdFromRaw(supporter: Address, borrower: Address, proposalId: BigInt): String {
+  return pledgeId(supporter.toHexString(), borrower.toHexString(), proposalId.toHex())
 }
 
-function pledgeId(sender: String, borrower: String, proposalId: String): String {
+function pledgeId(supporter: String, borrower: String, proposalId: String): String {
   return construct_two_part_id(
-    sender,
+    supporter,
     borrower.concat(proposalId.slice(2))
   )
 }
