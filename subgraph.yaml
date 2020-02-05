@@ -6,7 +6,7 @@ dataSources:
     name: FundsModule
     network: rinkeby
     source:
-      address: "0x36201b03F6A31300C67b6CFEaF45Fa28bea01662"
+      address: "0xb004A293002AaB928E7CF89623B12b16d717E5B9"
       abi: FundsModule
       startBlock: 5000000
     mapping:
@@ -26,7 +26,7 @@ dataSources:
     name: LiquidityModule
     network: rinkeby
     source:
-      address: "0x7a471386877BD110De4cD123418059C340C6bd56"
+      address: "0x052f0CF990f0e3515922A540701dDC9e3c7a7a53"
       abi: LiquidityModule
       startBlock: 5000000
     mapping:
@@ -50,7 +50,7 @@ dataSources:
     name: LoanModule
     network: rinkeby
     source:
-      address: "0x1B23eeb88f90324f48bF62F4314d68F7700b4564"
+      address: "0xccD1Fa4E164eb279e867E139c8946E0c7B2C8897"
       abi: LoanModule
       startBlock: 5000000
     mapping:
@@ -88,7 +88,7 @@ dataSources:
     name: PToken
     network: rinkeby
     source:
-      address: "0x9d39ad408A7c4987396308A3216E4961C12B6Bdb"
+      address: "0xcEbf0883A36c54bE74da1F3ADe15C61a3930F112"
       abi: PToken
       startBlock: 5000000
     mapping:
