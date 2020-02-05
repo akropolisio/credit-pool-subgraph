@@ -12,9 +12,15 @@ type User @entity {
 
 type Balance @entity{
   id: ID!,
+  date: BigInt!,
   user: String!,
   lBalance: BigInt!,
   pBalance: BigInt!,
+  lLockedSum: BigInt!,
+  pLockedSum: BigInt!,
+  lInterestSum: BigInt!,
+  pInterestSum: BigInt!,
+  credit: BigInt!,
 }
 
 type ExitBalance @entity{
