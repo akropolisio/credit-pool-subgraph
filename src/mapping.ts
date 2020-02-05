@@ -21,7 +21,9 @@ import {
   latest_date,
   inverseCurveFunction,
   DAY,
-  COLLATERAL_TO_DEBT_RATIO_MULTIPLIER
+  COLLATERAL_TO_DEBT_RATIO_MULTIPLIER,
+  PERCENT_MULTIPLIER,
+  WITHDRAW_FEE
 } from "./utils";
 
 // (!) - hight concentration edit only
@@ -168,9 +170,9 @@ export function handleWithdraw(event: Withdraw): void {
 }
 
 export function handleDebtProposalCreated(event: DebtProposalCreated): void {
-    let debt_id = debtProposalId(
-      event.params.sender.toHexString(),
-      event.params.proposal.toHex()
+  let debt_id = debtProposalId(
+    event.params.sender.toHexString(),
+    event.params.proposal.toHex()
   );
 
   let proposal = new Debt(debt_id);
@@ -187,7 +189,6 @@ export function handleDebtProposalCreated(event: DebtProposalCreated): void {
   proposal.status = "PROPOSED";
   proposal.save();
 }
-
 
 export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
   let pool = get_latest_pool();
@@ -229,7 +230,10 @@ export function handlePledgeAdded(event: PledgeAdded): void {
   }
   let pledge_hash = construct_two_part_id(
     event.params.sender.toHexString(),
-    event.params.borrower.toHexString().slice(2).concat(event.params.proposal.toHex().slice(2))
+    event.params.borrower
+      .toHexString()
+      .slice(2)
+      .concat(event.params.proposal.toHex().slice(2))
   );
 
   // decrease balance and increase locked
@@ -479,15 +483,16 @@ export function get_latest_pool(): Pool {
   return latest_pool as Pool;
 }
 
+//POOL FEE EXTRACTED HERE
 export function calculate_lBalance(pAmount: BigInt): BigInt {
-  // get current liquid from current PTK (contract)
-  // TODO: deal with graph node timeouts
-  // let Funds_mod = FundsModule.bind(address);
-  // let result = Funds_mod.calculatePoolExitInverse(pAmount);
+  // let fee: BigInt = funds_mod.withdrawFeePercent();
+  // let result = Funds_mod.calculateExitInverse(pAmount);
+  // let funds_mod = FundsModule.bind(address);
+  
+  let withdraw: BigInt = inverseCurveFunction(pAmount);
+  let feeAmount = withdraw.times(WITHDRAW_FEE).div(PERCENT_MULTIPLIER);
 
-  //use local substitute for now
-  let result = inverseCurveFunction(pAmount);
-  return result;
+  return withdraw.minus(feeAmount);
 }
 
 // update all pledges interests after repay
@@ -675,5 +680,5 @@ function normalizeLength(str: string): string {
 }
 
 function debtProposalId(address: String, proposalId: String): String {
-  return construct_two_part_id(address, proposalId)
+  return construct_two_part_id(address, proposalId);
 }
