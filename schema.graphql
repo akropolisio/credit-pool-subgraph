@@ -21,10 +21,10 @@ type Balance @entity{
 type Debt @entity {
   id: ID!
   debt_id: BigInt,
-  proposal_id: BigInt,
+  proposal_id: String,
   description: Bytes!,
   apr: BigInt!,
-  borrower: Bytes!,
+  borrower: String!,
   total: BigInt!,
   repayed: BigInt!,
   pledgers: [String!]!,
@@ -38,8 +38,8 @@ type Debt @entity {
 
 type Pledge @entity {
   id: ID!,
-  proposal_id: ID!,
-  pledger: Bytes!,
+  proposal_id: String!,
+  pledger: String!,
   withdrawn: BigInt!,
   lInitialLocked: BigInt!,
   pInitialLocked: BigInt!,
