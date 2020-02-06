@@ -598,18 +598,18 @@ export function construct_three_part_id(
     .keccak256(
       concat(
         concat(
-          ByteArray.fromHexString(normalizeLength(s)),
-          ByteArray.fromHexString(normalizeLength(b))
+          ByteArray.fromHexString(normalizeHex(s)),
+          ByteArray.fromHexString(normalizeHex(b))
         ),
-        ByteArray.fromHexString(normalizeLength(d))
+        ByteArray.fromHexString(normalizeHex(d))
       )
     )
     .toHexString();
 }
 
 export function construct_two_part_id(s: string, p: string): string {
-  p = normalizeLength(p);
-  s = normalizeLength(s);
+  p = normalizeHex(p);
+  s = normalizeHex(s);
   return crypto
     .keccak256(concat(ByteArray.fromHexString(s), ByteArray.fromHexString(p)))
     .toHexString();
@@ -632,12 +632,12 @@ export function filter_pledgers(p: Array<string>, s: string): Array<string> {
   return p.filter(address => address !== s);
 }
 
-function normalizeLength(str: string): string {
+function normalizeHex(str: string): string {
   let s = str.slice(2);
   if (s.length % 2 == 1) {
     return "0".concat(s);
   }
-  return s;
+  return s.toLowerCase();
 }
 
 function debtProposalId(address: String, proposalId: String): String {
