@@ -84,12 +84,14 @@ export function handleTransfer(event: Transfer): void {
     let new_users = pool.users;
     new_users.push(from.id);
     pool.users = new_users;
+    from.save();
   }
   if (!pool.users.includes(to.id)) {
     pool.usersLength = pool.usersLength.plus(BigInt.fromI32(1));
     let new_users = pool.users;
     new_users.push(to.id);
     pool.users = new_users;
+    to.save();
   }
   pool.save();
 
