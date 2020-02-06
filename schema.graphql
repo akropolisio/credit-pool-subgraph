@@ -34,7 +34,7 @@ type ExitBalance @entity{
 type Debt @entity {
   id: ID!
   debt_id: BigInt,
-  proposal_id: String,
+  proposal_id: String!,
   description: Bytes!,
   apr: BigInt!,
   borrower: String!,
