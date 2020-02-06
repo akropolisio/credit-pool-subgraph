@@ -317,6 +317,7 @@ export function handleRepay(event: Repay): void {
   let repayment = event.params.lFullPaymentAmount.minus(
     event.params.lInterestPaid
   );
+  log.warning("COMPATIBILITY TEST timestamp {} newLastPayment {}", [event.params.newlastPayment.toString(), event.block.timestamp.toString()])
   debt.last_update = event.params.newlastPayment; // TODO: check compatibility with event.block.timestamp
   debt.repayed = debt.repayed.plus(repayment);
 
@@ -507,7 +508,7 @@ export function charge_repay_interest(
 // reset interest of pledgers and transfer all interests to balances
 // as well as ditribute borrowers locked pTokens among the pledgers
 export function default_pledge_interests(debt: Debt, pBurned: BigInt, timestamp: BigInt): void {
-  let borrower_pledge_hash = pledgeId(pledge.pledger, debt.borrower, debt.proposal_id);
+  let borrower_pledge_hash = pledgeId(debt.borrower, debt.borrower, debt.proposal_id);
   let borrower_pledge = get_pledge(borrower_pledge_hash);
   
   let lBorrowerPledge = borrower_pledge.lLocked;
@@ -613,12 +614,6 @@ export function construct_two_part_id(s: string, p: string): string {
     .keccak256(concat(ByteArray.fromHexString(s), ByteArray.fromHexString(p)))
     .toHexString();
 }
-
-// function reducer(acc: BigInt, value: string, i: number, a: string[]): BigInt {
-//   let n = value as i32;
-//   return acc.plus(BigInt.fromI32(n));
-// }
-// return d.pledges.reduce(reducer, BigInt.fromI32(0));
 
 // AssemblyScript types workarounds
 export function contains_pledger(pledgers: Array<string>, s: string): boolean {
