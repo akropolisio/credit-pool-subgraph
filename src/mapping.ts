@@ -589,20 +589,18 @@ export function calculate_progress(proposal: Debt): string {
   return progress.toHex();
 }
 
-export function construct_three_part_id(
-  s: string,
-  b: string,
-  d: string
-): string {
+function construct_three_part_id(
+  a: String,
+  b: String,
+  c: String
+): String {
   return crypto
     .keccak256(
-      concat(
-        concat(
-          ByteArray.fromHexString(normalizeLength(s)),
-          ByteArray.fromHexString(normalizeLength(b))
-        ),
-        ByteArray.fromHexString(normalizeLength(d))
-      )
+          ByteArray.fromHexString(
+            normalizeLength(a)
+              .concat(normalizeLength(b))
+              .concat(normalizeLength(c))
+          )
     )
     .toHexString();
 }
@@ -649,10 +647,7 @@ function pledgeIdFromRaw(supporter: Address, borrower: Address, proposalId: BigI
 }
 
 function pledgeId(supporter: String, borrower: String, proposalId: String): String {
-  return construct_two_part_id(
-    supporter,
-    borrower.concat(proposalId.slice(2))
-  )
+  return construct_three_part_id(supporter, borrower, proposalId);
 }
 
 function createNewUserSnapshot(user: User | null, timestamp: BigInt): void {
