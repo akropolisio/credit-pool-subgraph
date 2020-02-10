@@ -283,8 +283,8 @@ export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
 
   createNewUserSnapshot(pledger, event.block.timestamp);
 
-  proposal.lStaked = proposal.lStaked.minus(l_to_sub);
-  proposal.pStaked = proposal.pStaked.minus(p_to_sub);
+  proposal.lStaked = proposal.lStaked.minus(event.params.lAmount);
+  proposal.pStaked = proposal.pStaked.minus(event.params.pAmount);
   proposal.stakeProgress = calculate_progress(proposal);
 
   // remove pledge and pledger from this debt if there is no stake left
