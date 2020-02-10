@@ -221,7 +221,7 @@ export function handlePledgeAdded(event: PledgeAdded): void {
   pledge.pledger = event.params.sender.toHexString();
   pledge.lLocked = pledge.lLocked.plus(l_to_add);
   pledge.pLocked = pledge.pLocked.plus(event.params.pAmount);
-  pledge.lInitialLocked = pledge.lLocked;
+  pledge.lInitialLocked = pledge.lInitialLocked.plus(event.params.lAmount);
   pledge.pInitialLocked = pledge.pLocked;
   pledge.proposal_id = proposal.proposal_id;
   pledge.save();
@@ -271,7 +271,7 @@ export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
   let l_to_sub = lProportional_out(event.params.pAmount, pledge);
   pledge.lLocked = pledge.lLocked.minus(l_to_sub);
   pledge.pLocked = pledge.pLocked.minus(p_to_sub);
-  pledge.lInitialLocked = pledge.lLocked;
+  pledge.lInitialLocked = pledge.lInitialLocked.minus(event.params.lAmount);
   pledge.pInitialLocked = pledge.pLocked;
   pledge.save();
 
