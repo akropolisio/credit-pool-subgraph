@@ -1,4 +1,11 @@
-import { BigInt, ByteArray, Address, Bytes, crypto, log } from "@graphprotocol/graph-ts";
+import {
+  BigInt,
+  ByteArray,
+  Address,
+  Bytes,
+  crypto,
+  log
+} from "@graphprotocol/graph-ts";
 import { Status, FundsModule } from "../generated/FundsModule/FundsModule";
 import { Transfer } from "../generated/PToken/PToken";
 import {
@@ -15,7 +22,14 @@ import {
   UnlockedPledgeWithdraw,
   DebtDefaultExecuted
 } from "../generated/LoanModule/LoanModule";
-import { User, UserSnapshot, Debt, ExitBalance, Pool, Pledge } from "../generated/schema";
+import {
+  User,
+  UserSnapshot,
+  Debt,
+  ExitBalance,
+  Pool,
+  Pledge
+} from "../generated/schema";
 import {
   concat,
   latest_date,
@@ -46,7 +60,7 @@ export function handleStatus(event: Status): void {
   pool.save();
 
   // add new balance in history for all users once a day
-  // TEST: will only work if timestamp returned in ms
+  // WARN: timestamp is returned in seconds
   let today = event.block.timestamp.div(DAY);
   let exit_balance = ExitBalance.load(today.toHex());
 
@@ -70,6 +84,12 @@ export function handleStatus(event: Status): void {
 
       // createNewUserSnapshot(user, event.block.timestamp); // don't need, because updated in handleTransfer
     }
+    exit_balance = new ExitBalance(today.toHex());
+    exit_balance.pBalance = BigInt.fromI32(0);
+    exit_balance.lBalance = BigInt.fromI32(0);
+    exit_balance.date = event.block.timestamp;
+    exit_balance.user = "";
+    exit_balance.save();
   }
 }
 
@@ -98,7 +118,9 @@ export function handleTransfer(event: Transfer): void {
   // add exit_balance from
   let from_exit_balance = get_exit_balance(event.block.timestamp, from);
   from_exit_balance.pBalance = from.pBalance.minus(event.params.value);
-  let from_exit_lBalanceCalculated = calculate_lBalance(from_exit_balance.pBalance);
+  let from_exit_lBalanceCalculated = calculate_lBalance(
+    from_exit_balance.pBalance
+  );
   from_exit_balance.lBalance = from_exit_lBalanceCalculated;
   from_exit_balance.date = event.block.timestamp;
   from_exit_balance.save();
@@ -107,7 +129,9 @@ export function handleTransfer(event: Transfer): void {
   let to_exit_balance = get_exit_balance(event.block.timestamp, to);
   to_exit_balance.pBalance = to.pBalance.plus(event.params.value);
   let to_exit_lBalanceCalculated = calculate_lBalance(to_exit_balance.pBalance);
-  to_exit_balance.lBalance = to_exit_balance.lBalance.plus(to_exit_lBalanceCalculated);
+  to_exit_balance.lBalance = to_exit_balance.lBalance.plus(
+    to_exit_lBalanceCalculated
+  );
   to_exit_balance.date = event.block.timestamp;
   to_exit_balance.save();
 }
@@ -212,7 +236,11 @@ export function handlePledgeAdded(event: PledgeAdded): void {
     log.warning("DebtProposal not found, proposalId: {}. qed", [proposal_id]);
     return;
   }
-  let pledge_hash = pledgeIdFromRaw(event.params.sender, event.params.borrower, event.params.proposal);
+  let pledge_hash = pledgeIdFromRaw(
+    event.params.sender,
+    event.params.borrower,
+    event.params.proposal
+  );
 
   // decrease balance and increase locked
   let pledger = get_user(event.params.sender.toHexString());
@@ -262,7 +290,11 @@ export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
     event.params.proposal.toHex()
   );
   let proposal = Debt.load(debt_id) as Debt;
-  let pledge_hash = pledgeIdFromRaw(event.params.sender, event.params.borrower, event.params.proposal);
+  let pledge_hash = pledgeIdFromRaw(
+    event.params.sender,
+    event.params.borrower,
+    event.params.proposal
+  );
 
   // decrease locked and increase balance
   let pledger = get_user(event.params.sender.toHexString());
@@ -317,8 +349,7 @@ export function handleRepay(event: Repay): void {
   let repayment = event.params.lFullPaymentAmount.minus(
     event.params.lInterestPaid
   );
-  log.warning("COMPATIBILITY TEST timestamp {} newLastPayment {}", [event.params.newlastPayment.toString(), event.block.timestamp.toString()])
-  debt.last_update = event.params.newlastPayment; // TODO: check compatibility with event.block.timestamp
+  debt.last_update = event.params.newlastPayment;
   debt.repayed = debt.repayed.plus(repayment);
 
   // change status if repayed
@@ -349,7 +380,11 @@ export function handleRepay(event: Repay): void {
 export function handleUnlockedPledgeWithdraw(
   event: UnlockedPledgeWithdraw
 ): void {
-  let pledge_hash = pledgeIdFromRaw(event.params.sender, event.params.borrower, event.params.proposal);
+  let pledge_hash = pledgeIdFromRaw(
+    event.params.sender,
+    event.params.borrower,
+    event.params.proposal
+  );
   let pledge = get_pledge(pledge_hash);
   let pledger = get_user(event.params.sender.toHexString());
   let pUnlockedPledge = event.params.pAmount.minus(pledge.pInterest);
@@ -374,7 +409,7 @@ export function handleUnlockedPledgeWithdraw(
   pledge.save();
 
   //remove user from pledgers on a debt if he withdtraw his part entirely
-  if (pledge.withdrawn == pledge.pLocked) {
+  if (pledge.withdrawn.equals(pledge.pLocked)) {
     let debt_id = construct_two_part_id(
       event.params.borrower.toHex(),
       event.params.proposal.toHex()
@@ -436,7 +471,9 @@ export function get_pledge(hash: String): Pledge {
 }
 
 export function get_exit_balance(t: BigInt, sender: User): ExitBalance {
-  let exit_balance = ExitBalance.load(construct_two_part_id(t.toHex(), sender.id));
+  let exit_balance = ExitBalance.load(
+    construct_two_part_id(t.toHex(), sender.id)
+  );
   if (exit_balance == null) {
     exit_balance = init_exit_balance(t, sender);
   }
@@ -444,7 +481,9 @@ export function get_exit_balance(t: BigInt, sender: User): ExitBalance {
 }
 
 export function init_exit_balance(t: BigInt, sender: User): ExitBalance {
-  let exit_balance = new ExitBalance(construct_two_part_id(t.toHex(), sender.id));
+  let exit_balance = new ExitBalance(
+    construct_two_part_id(t.toHex(), sender.id)
+  );
   exit_balance.pBalance = BigInt.fromI32(0);
   exit_balance.lBalance = BigInt.fromI32(0);
   exit_balance.user = sender.id;
@@ -472,7 +511,7 @@ export function calculate_lBalance(pAmount: BigInt): BigInt {
   // let fee: BigInt = funds_mod.withdrawFeePercent();
   // let result = Funds_mod.calculateExitInverse(pAmount);
   // let funds_mod = FundsModule.bind(address);
-  
+
   let withdraw: BigInt = inverseCurveFunction(pAmount);
   let feeAmount = withdraw.times(WITHDRAW_FEE).div(PERCENT_MULTIPLIER);
 
@@ -490,9 +529,13 @@ export function charge_repay_interest(
     let pledges = debt.pledges;
     let pledge = get_pledge(pledges[i]);
     let user = get_user(pledge.pledger);
-    if (pledge.pledger !== debt.borrower) {
-      let p_pledger_interest = pInterest.times(pledge.lInitialLocked).div(debt.lStaked);
-      let l_pledger_interest = lInterest.times(pledge.lInitialLocked).div(debt.lStaked);
+    if (!pledge.pledger.includes(debt.borrower)) {
+      let p_pledger_interest = pInterest
+        .times(pledge.lInitialLocked)
+        .div(debt.lStaked);
+      let l_pledger_interest = lInterest
+        .times(pledge.lInitialLocked)
+        .div(debt.lStaked);
       pledge.pInterest = pledge.pInterest.plus(p_pledger_interest);
       pledge.lInterest = pledge.lInterest.plus(l_pledger_interest);
       pledge.save();
@@ -507,15 +550,23 @@ export function charge_repay_interest(
 
 // reset interest of pledgers and transfer all interests to balances
 // as well as ditribute borrowers locked pTokens among the pledgers
-export function default_pledge_interests(debt: Debt, pBurned: BigInt, timestamp: BigInt): void {
-  let borrower_pledge_hash = pledgeId(debt.borrower, debt.borrower, debt.proposal_id);
+export function default_pledge_interests(
+  debt: Debt,
+  pBurned: BigInt,
+  timestamp: BigInt
+): void {
+  let borrower_pledge_hash = pledgeId(
+    debt.borrower,
+    debt.borrower,
+    debt.proposal_id
+  );
   let borrower_pledge = get_pledge(borrower_pledge_hash);
-  
+
   let lBorrowerPledge = borrower_pledge.lLocked;
   let pBorrowerPledge = borrower_pledge.pLocked;
   let lInitialDebtPledge = debt.lStaked;
   let pInitialDebtPledge = debt.pStaked;
-  
+
   let lUnlockedBorrowerPledge = lBorrowerPledge
     .times(pInitialDebtPledge.minus(pBurned))
     .div(pInitialDebtPledge);
@@ -528,7 +579,7 @@ export function default_pledge_interests(debt: Debt, pBurned: BigInt, timestamp:
     let pledge = get_pledge(pledges[i]);
     let user = get_user(pledge.pledger);
 
-    if (pledge.pledger !== debt.borrower) {
+    if (pledge.pledger.includes(debt.borrower)) {
       let lInitialUserPledge = pledge.lInitialLocked;
       let pInitialUserPledge = pledge.pInitialLocked;
 
@@ -545,8 +596,8 @@ export function default_pledge_interests(debt: Debt, pBurned: BigInt, timestamp:
       let p_to_sub = pBurnedUserPledge;
       let p_to_add = pUnlockedBorrowerPledge
         .times(lInitialUserPledge)
-        .div(lInitialDebtPledge.minus(lBorrowerPledge))
-      
+        .div(lInitialDebtPledge.minus(lBorrowerPledge));
+
       pledge.lLocked = pledge.lLocked.minus(l_to_sub).plus(l_to_add);
       pledge.pLocked = pledge.pLocked.minus(p_to_sub).plus(p_to_add);
 
@@ -565,7 +616,7 @@ export function default_pledge_interests(debt: Debt, pBurned: BigInt, timestamp:
       createNewUserSnapshot(user, timestamp);
     }
   }
-  
+
   borrower_pledge.pLocked = BigInt.fromI32(0);
   borrower_pledge.lLocked = BigInt.fromI32(0);
   borrower_pledge.save();
@@ -589,18 +640,14 @@ export function calculate_progress(proposal: Debt): string {
   return progress.toHex();
 }
 
-function construct_three_part_id(
-  a: String,
-  b: String,
-  c: String
-): String {
+function construct_three_part_id(a: String, b: String, c: String): String {
   return crypto
     .keccak256(
-          ByteArray.fromHexString(
-            normalizeLength(a)
-              .concat(normalizeLength(b))
-              .concat(normalizeLength(c))
-          )
+      ByteArray.fromHexString(
+        normalizeLength(a)
+          .concat(normalizeLength(b))
+          .concat(normalizeLength(c))
+      )
     )
     .toHexString();
 }
@@ -615,19 +662,38 @@ export function construct_two_part_id(s: string, p: string): string {
 
 // AssemblyScript types workarounds
 export function contains_pledger(pledgers: Array<string>, s: string): boolean {
-  return pledgers.some(p => p === s);
+  let contains = false;
+  for (let i = 0; i < pledgers.length; i++) {
+    let p = pledgers[i];
+    if (p.includes(s)) contains = true;
+  }
+  return contains;
 }
+
 // AssemblyScript types workarounds
 export function contains_pledge(pledges: Array<string>, s: string): boolean {
-  return pledges.some(p => p === s);
+  let contains = false;
+  for (let i = 0; i < pledges.length; i++) {
+    let p = pledges[i];
+    if (p.includes(s)) contains = true;
+  }
+  return contains;
 }
 // AssemblyScript types workarounds
 export function filter_pledges(p: Array<string>, s: string): Array<string> {
-  return p.filter(pledge => !pledge.includes(s));
+  let new_array = new Array<string>();
+  for (let i = 0; i < p.length; i++) {
+    if (!p[i].includes(s)) new_array.push(p[i]);
+  }
+  return new_array;
 }
 // AssemblyScript types workarounds
 export function filter_pledgers(p: Array<string>, s: string): Array<string> {
-  return p.filter(address => address !== s);
+  let new_array = new Array<string>();
+  for (let i = 0; i < p.length; i++) {
+    if (!p[i].includes(s)) new_array.push(p[i]);
+  }
+  return new_array;
 }
 
 function normalizeLength(str: string): string {
@@ -642,11 +708,23 @@ function debtProposalId(address: String, proposalId: String): String {
   return construct_two_part_id(address, proposalId);
 }
 
-function pledgeIdFromRaw(supporter: Address, borrower: Address, proposalId: BigInt): String {
-  return pledgeId(supporter.toHexString(), borrower.toHexString(), proposalId.toHex())
+function pledgeIdFromRaw(
+  supporter: Address,
+  borrower: Address,
+  proposalId: BigInt
+): String {
+  return pledgeId(
+    supporter.toHexString(),
+    borrower.toHexString(),
+    proposalId.toHex()
+  );
 }
 
-function pledgeId(supporter: String, borrower: String, proposalId: String): String {
+function pledgeId(
+  supporter: String,
+  borrower: String,
+  proposalId: String
+): String {
   return construct_three_part_id(supporter, borrower, proposalId);
 }
 
@@ -655,7 +733,9 @@ function createNewUserSnapshot(user: User | null, timestamp: BigInt): void {
     log.warning("User is null. qed", []);
     return;
   }
-  let user_snapshot = new UserSnapshot(construct_two_part_id(timestamp.toHex(), user.id));
+  let user_snapshot = new UserSnapshot(
+    construct_two_part_id(timestamp.toHex(), user.id)
+  );
   user_snapshot.date = timestamp;
   user_snapshot.user = user.id;
   user_snapshot.lBalance = user.lBalance;

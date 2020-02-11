@@ -4,7 +4,7 @@ export let FIX = BigInt.fromI32(10).pow(18);
 export let WITHDRAW_FEE = BigInt.fromI32(5);
 export let PERCENT_MULTIPLIER = BigInt.fromI32(100);
 export let COLLATERAL_TO_DEBT_RATIO_MULTIPLIER = BigInt.fromI32(100);
-export let DAY = BigInt.fromI32(86400000);
+export let DAY = BigInt.fromI32(86400);
 export let latest_date: BigInt = BigInt.fromI32(1287558610000 as i32);
 
 export function concat(a: ByteArray, b: ByteArray): ByteArray {
