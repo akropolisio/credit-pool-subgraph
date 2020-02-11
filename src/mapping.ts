@@ -60,7 +60,7 @@ export function handleStatus(event: Status): void {
   pool.save();
 
   // add new balance in history for all users once a day
-  // TEST: will only work if timestamp returned in ms
+  // WARN: will only work if timestamp returned in ms
   let today = event.block.timestamp.div(DAY);
   let exit_balance = ExitBalance.load(today.toHex());
 
@@ -84,6 +84,12 @@ export function handleStatus(event: Status): void {
 
       // createNewUserSnapshot(user, event.block.timestamp); // don't need, because updated in handleTransfer
     }
+    exit_balance = new ExitBalance(today.toHex());
+    exit_balance.pBalance = BigInt.fromI32(0);
+    exit_balance.lBalance = BigInt.fromI32(0);
+    exit_balance.date = event.block.timestamp;
+    exit_balance.user = "";
+    exit_balance.save();
   }
 }
 
