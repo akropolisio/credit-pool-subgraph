@@ -60,7 +60,7 @@ export function handleStatus(event: Status): void {
   pool.save();
 
   // add new balance in history for all users once a day
-  // WARN: will only work if timestamp returned in ms
+  // WARN: timestamp is returned in seconds
   let today = event.block.timestamp.div(DAY);
   let exit_balance = ExitBalance.load(today.toHex());
 
