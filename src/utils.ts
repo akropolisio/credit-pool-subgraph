@@ -1,11 +1,14 @@
-import { ByteArray, BigInt } from "@graphprotocol/graph-ts";
+import { ByteArray, BigInt, BigDecimal, log } from "@graphprotocol/graph-ts";
 
 export let FIX = BigInt.fromI32(10).pow(18);
+export let FIX2 = BigInt.fromI32(10).pow(36);
 export let WITHDRAW_FEE = BigInt.fromI32(5);
 export let PERCENT_MULTIPLIER = BigInt.fromI32(100);
 export let COLLATERAL_TO_DEBT_RATIO_MULTIPLIER = BigInt.fromI32(100);
 export let DAY = BigInt.fromI32(86400);
 export let latest_date: BigInt = BigInt.fromI32(1287558610000 as i32);
+let a = BigInt.fromI32(1);
+let b = BigInt.fromI32(1);
 
 export function concat(a: ByteArray, b: ByteArray): ByteArray {
   let out = new Uint8Array(a.length + b.length);
@@ -36,12 +39,61 @@ export function concat_array(...args: Array<ByteArray>): ByteArray {
   return out as ByteArray;
 }
 
+
+/**
+ * @notice Bonding Curve function
+ * Defined as: f(S) = [-a+sqrt(a^2+4bS)]/2, a>0, b>0
+ * Fixed for Solidity as: curve(S) = (-(10^18) * a + sqrt((10^36) * (a^2) + 4 * (10^18) * b * S)) / 2
+ * @param a Constant which defines curve
+ * @param b Constant which defines curve
+ * @param s Point used to calculate curve (liquid assets)
+ * @return Value of curve at point s
+ */
+export function curveFunction(s: BigInt): BigInt {
+  //uint256 d = FIX2 * (a*a) + 4 * FIX * b * s;
+  //return (d.sqrt() - FIX*a)/2;
+  let d = FIX2.times(a)
+    .times(a)
+    .plus(
+      FIX.times(BigInt.fromI32(4))
+        .times(b)
+        .times(s)
+    );
+
+  return sqrt_bitwise(d)
+    .minus(FIX.times(a))
+    .div(BigInt.fromI32(2));
+}
+
 /**
  * Inverse Bonding curve
  * S = g(x)=(x^2+ax)/b, a>0, b>0
  */
 export function inverseCurveFunction(x: BigInt): BigInt {
-  let a = BigInt.fromI32(1);
-  let b = BigInt.fromI32(1);
-  return x.pow(2).plus(FIX.times(a).times(x)).div(FIX.times(b));
+  return x
+    .pow(2)
+    .plus(FIX.times(a).times(x))
+    .div(FIX.times(b));
+}
+
+//Function to compute sqroot(n)
+// TODO: find/wait for a solution for graph-ts primitives
+// preferably to wait for their implementation for BigDecimal
+function sqrt_bitwise(num: BigInt): BigInt {
+  let ret = 0;
+  let bit = 1 << 30; // The second-to-top bit is set
+  // "bit" starts at the highest power of four <= the argument.
+  while (num.lt(BigInt.fromI32(bit))) {
+    bit >>= 2;
+  }
+  while (bit != 0) {
+    if (num.lt(BigInt.fromI32(ret + bit))) {
+      ret >>= 1;
+    } else {
+      num = num.minus(BigInt.fromI32(ret + bit));
+      ret = (ret >> 1) + bit;
+    }
+    bit >>= 2;
+  }
+  return BigInt.fromI32(ret);
 }
