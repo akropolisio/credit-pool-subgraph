@@ -28,7 +28,9 @@ import {
   Debt,
   ExitBalance,
   Pool,
-  Pledge
+  Pledge,
+  Distribution,
+  BalanceChange
 } from "../generated/schema";
 import {
   concat,
@@ -153,8 +155,13 @@ export function handleDeposit(event: Deposit): void {
 
   createNewUserSnapshot(user, event.block.timestamp);
 
+  let balance_change = init_balance_change(event.block.timestamp, user);
+  balance_change.amount = event.params.lAmount
+  balance_change.type = "DEPOSIT"
+  balance_change.save()
+
   // update pool balance
-  pool.lBalance = event.params.lAmount;
+  pool.lBalance = pool.lBalance.plus(event.params.lAmount);
   pool.save();
 }
 
@@ -168,6 +175,10 @@ export function handleWithdraw(event: Withdraw): void {
   user.save();
 
   createNewUserSnapshot(user, event.block.timestamp);
+  let balance_change = init_balance_change(event.block.timestamp, user);
+  balance_change.amount = event.params.lAmountUser;
+  balance_change.type = "WITHDRAW"
+  balance_change.save()
 
   // update pool balance
   pool.lBalance = pool.lBalance.minus(event.params.lAmountTotal);
@@ -490,6 +501,28 @@ export function init_exit_balance(t: BigInt, sender: User): ExitBalance {
   exit_balance.date = t;
 
   return exit_balance as ExitBalance;
+}
+
+export function init_distribution(t: BigInt, sender: User): Distribution {
+  let distribution = new Distribution(
+    construct_two_part_id(t.toHex(), sender.id)
+  );
+  distribution.pAmount = BigInt.fromI32(0);
+  distribution.lAmount = BigInt.fromI32(0);
+  distribution.address = sender.id;
+  distribution.date = t;
+
+  return distribution as Distribution;
+}
+export function init_balance_change(t: BigInt, sender: User): BalanceChange {
+  let balance_change = new BalanceChange(
+    construct_two_part_id(t.toHex(), sender.id)
+  );
+  balance_change.amount = BigInt.fromI32(0);
+  balance_change.address = sender.id;
+  balance_change.date = t;
+
+  return balance_change as BalanceChange;
 }
 
 export function get_latest_pool(): Pool {
