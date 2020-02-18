@@ -483,7 +483,7 @@ export function handleDebtDefaultExecuted(event: DebtDefaultExecuted): void {
   pool.save();
 }
 
-export function get_user(address: String): User {
+export function get_user(address: string): User {
   let user = User.load(address);
   if (user == null) {
     user = new User(address);
@@ -498,7 +498,7 @@ export function get_user(address: String): User {
   }
   return user as User;
 }
-export function get_pledge(hash: String): Pledge {
+export function get_pledge(hash: string): Pledge {
   let pledge = Pledge.load(hash);
   if (pledge == null) {
     pledge = new Pledge(hash);
@@ -709,7 +709,7 @@ export function calculate_progress(proposal: Debt): string {
   return progress.toHex();
 }
 
-function construct_three_part_id(a: String, b: String, c: String): String {
+function construct_three_part_id(a: string, b: string, c: string): string {
   return crypto
     .keccak256(
       ByteArray.fromHexString(
@@ -773,7 +773,7 @@ function normalizeLength(str: string): string {
   return s;
 }
 
-function debtProposalId(address: String, proposalId: String): String {
+function debtProposalId(address: string, proposalId: string): string {
   return construct_two_part_id(address, proposalId);
 }
 
@@ -781,7 +781,7 @@ function pledgeIdFromRaw(
   supporter: Address,
   borrower: Address,
   proposalId: BigInt
-): String {
+): string {
   return pledgeId(
     supporter.toHexString(),
     borrower.toHexString(),
@@ -790,10 +790,10 @@ function pledgeIdFromRaw(
 }
 
 function pledgeId(
-  supporter: String,
-  borrower: String,
-  proposalId: String
-): String {
+  supporter: string,
+  borrower: string,
+  proposalId: string
+): string {
   return construct_three_part_id(supporter, borrower, proposalId);
 }
 
