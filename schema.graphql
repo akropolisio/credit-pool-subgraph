@@ -8,6 +8,7 @@ type User @entity {
   pInterestSum: BigInt!
   credit: BigInt!
   history: [String!]!
+  lastDistribution: BigInt
 }
 
 type UserSnapshot @entity {

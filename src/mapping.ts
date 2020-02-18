@@ -7,7 +7,7 @@ import {
   log
 } from "@graphprotocol/graph-ts";
 import { Status, FundsModule } from "../generated/FundsModule/FundsModule";
-import { Transfer } from "../generated/PToken/PToken";
+import { Transfer, DistributionsClaimed } from "../generated/PToken/PToken";
 import {
   Deposit,
   Withdraw
@@ -482,6 +482,15 @@ export function handleDebtDefaultExecuted(event: DebtDefaultExecuted): void {
   pool.lDebt = pool.lDebt.minus(credit_left);
   pool.save();
 }
+
+export function handleDistributionsClaimed(event: DistributionsClaimed): void {
+  let user = get_user(event.params.account.toHexString());
+  user.pBalance = user.pBalance.plus(event.params.amount);
+  user.lastDistribution = event.params.nextDistribution;
+  user.save();
+}
+
+/*            HELPERS           */
 
 export function get_user(address: string): User {
   let user = User.load(address);
