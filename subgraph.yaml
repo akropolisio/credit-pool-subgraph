@@ -106,7 +106,7 @@ dataSources:
           file: ./abis/DistributionToken.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
-        handler: handleTransfer
+          handler: handleTransfer
         - event: DistributionsClaimed(address,uint256,uint256,uint256)
           handler: handleDistributionsClaimed
       file: ./src/mapping.ts
