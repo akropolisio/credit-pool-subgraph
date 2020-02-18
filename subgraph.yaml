@@ -19,7 +19,7 @@ dataSources:
         - name: FundsModule
           file: ./abis/FundsModule.json
       eventHandlers:
-        - event: Status(uint256,uint256,uint256,uint256)
+        - event: Status(uint256,uint256,uint256,uint256,uint256)
           handler: handleStatus
       file: ./src/mapping.ts
   - kind: ethereum/contract
@@ -105,4 +105,24 @@ dataSources:
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
+      file: ./src/mapping.ts
+  - kind: ethereum/contract
+    name: DistributionToken
+    network: rinkeby
+    source:
+      address: "0xCbE6E7eA6aC7e9f3519a7599a011f3f54b66dD77"
+      abi: DistributionToken
+      startBlock: 5000000
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.3
+      language: wasm/assemblyscript
+      entities:
+        - DistributionsClaimed
+      abis:
+        - name: DistributionToken
+          file: ./abis/DistributionToken.json
+      eventHandlers:
+        - event: DistributionsClaimed(address,uint256,uint256,uint256)
+          handler: handleDistributionsClaimed
       file: ./src/mapping.ts
