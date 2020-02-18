@@ -29,7 +29,7 @@ import {
   ExitBalance,
   Pool,
   Pledge,
-  Distribution,
+  Earning,
   BalanceChange
 } from "../generated/schema";
 import {
@@ -47,7 +47,7 @@ export function handleStatus(event: Status): void {
   let latest_pool = get_latest_pool();
   let pool = new Pool(event.block.timestamp.toHex());
   pool.lBalance = event.params.lBalance;
-  pool.lDebt = event.params.lDebt;
+  pool.lDebt = event.params.lDebts;
   pool.pEnterPrice = event.params.pEnterPrice;
   pool.pExitPrice = event.params.pExitPrice;
   pool.usersLength = latest_pool.usersLength;
@@ -75,7 +75,12 @@ export function handleStatus(event: Status): void {
       // add exit_balance record
       let new_history_record = init_exit_balance(event.block.timestamp, user);
       new_history_record.pBalance = user.pBalance;
-      new_history_record.lBalance = calculate_lBalance(user.pBalance);
+      new_history_record.lBalance = calculate_lBalance(
+        event.address,
+        user.id,
+        pool.lBalance,
+        user.pBalance
+      );
       new_history_record.date = event.block.timestamp;
       new_history_record.save();
 
@@ -121,6 +126,9 @@ export function handleTransfer(event: Transfer): void {
   let from_exit_balance = get_exit_balance(event.block.timestamp, from);
   from_exit_balance.pBalance = from.pBalance.minus(event.params.value);
   let from_exit_lBalanceCalculated = calculate_lBalance(
+    event.address,
+    from.id,
+    pool.lBalance,
     from_exit_balance.pBalance
   );
   from_exit_balance.lBalance = from_exit_lBalanceCalculated;
@@ -130,7 +138,12 @@ export function handleTransfer(event: Transfer): void {
   // add exit_balance to
   let to_exit_balance = get_exit_balance(event.block.timestamp, to);
   to_exit_balance.pBalance = to.pBalance.plus(event.params.value);
-  let to_exit_lBalanceCalculated = calculate_lBalance(to_exit_balance.pBalance);
+  let to_exit_lBalanceCalculated = calculate_lBalance(
+    event.address,
+    to.id,
+    pool.lBalance,
+    to_exit_balance.pBalance
+  );
   to_exit_balance.lBalance = to_exit_balance.lBalance.plus(
     to_exit_lBalanceCalculated
   );
@@ -156,9 +169,9 @@ export function handleDeposit(event: Deposit): void {
   createNewUserSnapshot(user, event.block.timestamp);
 
   let balance_change = init_balance_change(event.block.timestamp, user);
-  balance_change.amount = event.params.lAmount
-  balance_change.type = "DEPOSIT"
-  balance_change.save()
+  balance_change.amount = event.params.lAmount;
+  balance_change.type = "DEPOSIT";
+  balance_change.save();
 
   // update pool balance
   pool.lBalance = pool.lBalance.plus(event.params.lAmount);
@@ -177,8 +190,8 @@ export function handleWithdraw(event: Withdraw): void {
   createNewUserSnapshot(user, event.block.timestamp);
   let balance_change = init_balance_change(event.block.timestamp, user);
   balance_change.amount = event.params.lAmountUser;
-  balance_change.type = "WITHDRAW"
-  balance_change.save()
+  balance_change.type = "WITHDRAW";
+  balance_change.save();
 
   // update pool balance
   pool.lBalance = pool.lBalance.minus(event.params.lAmountTotal);
@@ -412,6 +425,26 @@ export function handleUnlockedPledgeWithdraw(
 
   createNewUserSnapshot(pledger, event.block.timestamp);
 
+  // user earnings
+  let pool = get_latest_pool();
+  let earning = init_earning(event.block.timestamp, pledger);
+  earning.type = "DEBT_INTEREST";
+  earning.pAmount = event.params.pAmount;
+  earning.lAmount = calculate_lBalance(
+    event.address,
+    pledger.id,
+    pool.lBalance,
+    pledger.pBalance.plus(event.params.pAmount)
+  ).minus(
+    calculate_lBalance(
+      event.address,
+      pledger.id,
+      pool.lBalance,
+      pledger.pBalance
+    )
+  );
+  earning.save();
+
   pledge.lLocked = pledge.lLocked.minus(l_to_unlock);
   pledge.pLocked = pledge.pLocked.minus(pUnlockedPledge);
   pledge.lInterest = BigInt.fromI32(0);
@@ -503,16 +536,14 @@ export function init_exit_balance(t: BigInt, sender: User): ExitBalance {
   return exit_balance as ExitBalance;
 }
 
-export function init_distribution(t: BigInt, sender: User): Distribution {
-  let distribution = new Distribution(
-    construct_two_part_id(t.toHex(), sender.id)
-  );
-  distribution.pAmount = BigInt.fromI32(0);
-  distribution.lAmount = BigInt.fromI32(0);
-  distribution.address = sender.id;
-  distribution.date = t;
+export function init_earning(t: BigInt, sender: User): Earning {
+  let earning = new Earning(construct_two_part_id(t.toHex(), sender.id));
+  earning.pAmount = BigInt.fromI32(0);
+  earning.lAmount = BigInt.fromI32(0);
+  earning.address = sender.id;
+  earning.date = t;
 
-  return distribution as Distribution;
+  return earning as Earning;
 }
 export function init_balance_change(t: BigInt, sender: User): BalanceChange {
   let balance_change = new BalanceChange(
@@ -540,7 +571,12 @@ export function get_latest_pool(): Pool {
 }
 
 //POOL FEE EXTRACTED HERE
-export function calculate_lBalance(pAmount: BigInt): BigInt {
+export function calculate_lBalance(
+  address: Address,
+  user: string,
+  liqudAssets: BigInt,
+  pAmount: BigInt
+): BigInt {
   // let fee: BigInt = funds_mod.withdrawFeePercent();
   // let result = Funds_mod.calculateExitInverse(pAmount);
   // let funds_mod = FundsModule.bind(address);

@@ -39,7 +39,7 @@ type BalanceChange @entity {
   type: BalanceChangeType!
 }
 
-type Distribution @entity {
+type Earning @entity {
   id: ID!
   date: BigInt!
   address: String!
