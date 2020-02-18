@@ -104,6 +104,8 @@ dataSources:
           file: ./abis/FundsModule.json
         - name: DistributionToken
           file: ./abis/DistributionToken.json
+        - name: BondingCurve
+          file: ./abis/BondingCurve.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer

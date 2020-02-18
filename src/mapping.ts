@@ -7,6 +7,7 @@ import {
   log
 } from "@graphprotocol/graph-ts";
 import { Status, FundsModule } from "../generated/FundsModule/FundsModule";
+import { BondingCurve } from "../generated/PToken/BondingCurve";
 import { Transfer, DistributionsClaimed } from "../generated/PToken/PToken";
 import {
   Deposit,
@@ -586,14 +587,32 @@ export function calculate_lBalance(
   liqudAssets: BigInt,
   pAmount: BigInt
 ): BigInt {
-  // let fee: BigInt = funds_mod.withdrawFeePercent();
-  // let result = Funds_mod.calculateExitInverse(pAmount);
-  // let funds_mod = FundsModule.bind(address);
-
-  let withdraw: BigInt = inverseCurveFunction(pAmount);
+  let curve_mod = BondingCurve.bind(address);
+  log.warning("CALC INPUT liquidAssets {}  pAmount {} ", [
+    liqudAssets.toString(),
+    pAmount.abs().toString()
+  ]);
+  let result = curve_mod.calculateExitInverse(liqudAssets, pAmount.abs());
+  let withdraw = result;
+  log.warning("CALC OUTPUT {}", [result.toString()]);
   let feeAmount = withdraw.times(WITHDRAW_FEE).div(PERCENT_MULTIPLIER);
+  withdraw = withdraw.minus(feeAmount);
 
-  return withdraw.minus(feeAmount);
+  // take negative balance into account
+  let isNeg = pAmount.lt(BigInt.fromI32(0));
+
+  if (isNeg) {
+    log.warning(
+      `Account {} have less than 0 tokens. Discard this message if this is a mint operation.`,
+      [user]
+    );
+  }
+
+  // let withdraw: BigInt = inverseCurveFunction(pAmount);
+  // let feeAmount = withdraw.times(WITHDRAW_FEE).div(PERCENT_MULTIPLIER);
+  // return withdraw.minus(feeAmount);
+
+  return isNeg ? BigInt.fromI32(-withdraw as i32) : withdraw;
 }
 
 // update all pledges interests after repay
