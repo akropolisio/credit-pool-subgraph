@@ -8,7 +8,7 @@ dataSources:
     source:
       address: "0x74Cd4069C5AaAbb4F7e8a06c499910BD6897ED68"
       abi: FundsModule
-      startBlock: 5500000
+      startBlock: 5800000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -28,7 +28,7 @@ dataSources:
     source:
       address: "0xA66fAE2A84aB13CA6284c8610c85632326C62D70"
       abi: LiquidityModule
-      startBlock: 5500000
+      startBlock: 5800000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -52,7 +52,7 @@ dataSources:
     source:
       address: "0xE9e55bB8e77d380D38f4224559A5D7C9606D8265"
       abi: LoanModule
-      startBlock: 5500000
+      startBlock: 5800000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -90,7 +90,7 @@ dataSources:
     source:
       address: "0x325a5ac54FBa5EFbf480FB83B1f712bd5e2c0a9f"
       abi: PToken
-      startBlock: 5500000
+      startBlock: 5800000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -104,8 +104,6 @@ dataSources:
           file: ./abis/FundsModule.json
         - name: DistributionToken
           file: ./abis/DistributionToken.json
-        - name: BondingCurve
-          file: ./abis/BondingCurve.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer

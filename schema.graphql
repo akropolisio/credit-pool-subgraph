@@ -89,6 +89,7 @@ type Pool @entity {
   pExitPrice: BigInt!
   users: [String]!
   usersLength: BigInt!
+  lProposals: BigInt!
 }
 
 enum Status {
