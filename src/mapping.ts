@@ -2,12 +2,10 @@ import {
   BigInt,
   ByteArray,
   Address,
-  Bytes,
   crypto,
   log
 } from "@graphprotocol/graph-ts";
 import { Status, FundsModule } from "../generated/FundsModule/FundsModule";
-import { BondingCurve } from "../generated/PToken/BondingCurve";
 import { Transfer, DistributionsClaimed } from "../generated/PToken/PToken";
 import {
   Deposit,
@@ -36,11 +34,9 @@ import {
 import {
   concat,
   latest_date,
-  inverseCurveFunction,
+  calculateExitInverseWithFee,
   DAY,
-  COLLATERAL_TO_DEBT_RATIO_MULTIPLIER,
-  PERCENT_MULTIPLIER,
-  WITHDRAW_FEE
+  COLLATERAL_TO_DEBT_RATIO_MULTIPLIER
 } from "./utils";
 
 // (!) - hight concentration edit only
@@ -48,11 +44,13 @@ export function handleStatus(event: Status): void {
   let latest_pool = get_latest_pool();
   let pool = new Pool(event.block.timestamp.toHex());
   pool.lBalance = event.params.lBalance;
+  pool.lProposals = event.params.lProposals;
   pool.lDebt = event.params.lDebts;
   pool.pEnterPrice = event.params.pEnterPrice;
   pool.pExitPrice = event.params.pExitPrice;
   pool.usersLength = latest_pool.usersLength;
   pool.users = latest_pool.users;
+  pool.lProposals = BigInt.fromI32(0);
 
   //refresh latest
   latest_pool.lBalance = pool.lBalance;
@@ -77,9 +75,8 @@ export function handleStatus(event: Status): void {
       let new_history_record = init_exit_balance(event.block.timestamp, user);
       new_history_record.pBalance = user.pBalance;
       new_history_record.lBalance = calculate_lBalance(
-        event.address,
         user.id,
-        pool.lBalance,
+        pool.lBalance.minus(pool.lProposals),
         user.pBalance
       );
       new_history_record.date = event.block.timestamp;
@@ -127,9 +124,8 @@ export function handleTransfer(event: Transfer): void {
   let from_exit_balance = get_exit_balance(event.block.timestamp, from);
   from_exit_balance.pBalance = from.pBalance.minus(event.params.value);
   let from_exit_lBalanceCalculated = calculate_lBalance(
-    event.address,
     from.id,
-    pool.lBalance,
+    pool.lBalance.minus(pool.lProposals),
     from_exit_balance.pBalance
   );
   from_exit_balance.lBalance = from_exit_lBalanceCalculated;
@@ -140,9 +136,8 @@ export function handleTransfer(event: Transfer): void {
   let to_exit_balance = get_exit_balance(event.block.timestamp, to);
   to_exit_balance.pBalance = to.pBalance.plus(event.params.value);
   let to_exit_lBalanceCalculated = calculate_lBalance(
-    event.address,
     to.id,
-    pool.lBalance,
+    pool.lBalance.minus(pool.lProposals),
     to_exit_balance.pBalance
   );
   to_exit_balance.lBalance = to_exit_balance.lBalance.plus(
@@ -432,15 +427,13 @@ export function handleUnlockedPledgeWithdraw(
   earning.type = "DEBT_INTEREST";
   earning.pAmount = event.params.pAmount;
   earning.lAmount = calculate_lBalance(
-    event.address,
     pledger.id,
-    pool.lBalance,
+    pool.lBalance.minus(pool.lProposals),
     pledger.pBalance.plus(event.params.pAmount)
   ).minus(
     calculate_lBalance(
-      event.address,
       pledger.id,
-      pool.lBalance,
+      pool.lBalance.minus(pool.lProposals),
       pledger.pBalance
     )
   );
@@ -576,30 +569,20 @@ export function get_latest_pool(): Pool {
     latest_pool.pExitPrice = BigInt.fromI32(0);
     latest_pool.usersLength = BigInt.fromI32(0);
     latest_pool.users = [];
+    latest_pool.lProposals = BigInt.fromI32(0);
   }
   return latest_pool as Pool;
 }
 
 //POOL FEE EXTRACTED HERE
 export function calculate_lBalance(
-  address: Address,
   user: string,
-  liqudAssets: BigInt,
+  liquidAssets: BigInt,
   pAmount: BigInt
 ): BigInt {
-  let curve_mod = BondingCurve.bind(address);
-  log.warning("CALC INPUT liquidAssets {}  pAmount {} ", [
-    liqudAssets.toString(),
-    pAmount.abs().toString()
-  ]);
-  let result = curve_mod.calculateExitInverse(liqudAssets, pAmount.abs());
-  let withdraw = result;
-  log.warning("CALC OUTPUT {}", [result.toString()]);
-  let feeAmount = withdraw.times(WITHDRAW_FEE).div(PERCENT_MULTIPLIER);
-  withdraw = withdraw.minus(feeAmount);
-
   // take negative balance into account
   let isNeg = pAmount.lt(BigInt.fromI32(0));
+  pAmount = pAmount.abs();
 
   if (isNeg) {
     log.warning(
@@ -608,11 +591,9 @@ export function calculate_lBalance(
     );
   }
 
-  // let withdraw: BigInt = inverseCurveFunction(pAmount);
-  // let feeAmount = withdraw.times(WITHDRAW_FEE).div(PERCENT_MULTIPLIER);
-  // return withdraw.minus(feeAmount);
+  let withdraw = calculateExitInverseWithFee(liquidAssets, pAmount);
 
-  return isNeg ? BigInt.fromI32(-withdraw as i32) : withdraw;
+  return isNeg ? BigInt.fromI32(0) : withdraw;
 }
 
 // update all pledges interests after repay
