@@ -1,76 +1,95 @@
 type User @entity {
   id: ID!
-  lBalance: BigInt!,
-  pBalance: BigInt!,
-  lLockedSum: BigInt!,
-  pLockedSum: BigInt!,
-  lInterestSum: BigInt!,
-  pInterestSum: BigInt!,
-  credit: BigInt!,
+  lBalance: BigInt!
+  pBalance: BigInt!
+  lLockedSum: BigInt!
+  pLockedSum: BigInt!
+  lInterestSum: BigInt!
+  pInterestSum: BigInt!
+  credit: BigInt!
   history: [String!]!
+  lastDistributionIndex: BigInt
 }
 
-type UserSnapshot @entity{
-  id: ID!,
-  date: BigInt!,
-  user: String!,
-  lBalance: BigInt!,
-  pBalance: BigInt!,
-  lLockedSum: BigInt!,
-  pLockedSum: BigInt!,
-  lInterestSum: BigInt!,
-  pInterestSum: BigInt!,
-  credit: BigInt!,
+type UserSnapshot @entity {
+  id: ID!
+  date: BigInt!
+  user: String!
+  lBalance: BigInt!
+  pBalance: BigInt!
+  lLockedSum: BigInt!
+  pLockedSum: BigInt!
+  lInterestSum: BigInt!
+  pInterestSum: BigInt!
+  credit: BigInt!
 }
 
-type ExitBalance @entity{
-  id: ID!,
-  date: BigInt!,
-  user: String!,
-  lBalance: BigInt!,
-  pBalance: BigInt!,
+type ExitBalance @entity {
+  id: ID!
+  date: BigInt!
+  user: String!
+  lBalance: BigInt!
+  pBalance: BigInt!
+}
+
+type BalanceChange @entity {
+  id: ID!
+  date: BigInt!
+  address: String!
+  amount: BigInt!
+  type: BalanceChangeType!
+}
+
+type Earning @entity {
+  id: ID!
+  date: BigInt!
+  address: String!
+  pAmount: BigInt!
+  lAmount: BigInt!
+  type: DistributionType!
 }
 
 type Debt @entity {
   id: ID!
-  debt_id: BigInt,
-  proposal_id: String!,
-  description: Bytes!,
-  apr: BigInt!,
-  borrower: String!,
-  total: BigInt!,
-  repayed: BigInt!,
-  pledgers: [String!]!,
-  pledges: [String!]!,
-  lStaked: BigInt!,
-  pStaked: BigInt!,
-  status: Status!,
-  stakeProgress: String!,
-  start_date: BigInt,
-  last_update: BigInt,
+  debt_id: BigInt
+  proposal_id: String!
+  description: Bytes!
+  apr: BigInt!
+  borrower: String!
+  total: BigInt!
+  repayed: BigInt!
+  pledgers: [String!]!
+  pledges: [String!]!
+  lStaked: BigInt!
+  pStaked: BigInt!
+  status: Status!
+  stakeProgress: String!
+  start_date: BigInt
+  last_update: BigInt
 }
 
 type Pledge @entity {
-  id: ID!,
-  proposal_id: String!,
-  pledger: String!,
-  withdrawn: BigInt!,
-  lInitialLocked: BigInt!,
-  pInitialLocked: BigInt!,
-  lLocked: BigInt!,
-  pLocked: BigInt!,
-  lInterest: BigInt!,
-  pInterest: BigInt!,
+  id: ID!
+  proposal_id: String!
+  pledger: String!
+  withdrawn: BigInt!
+  lInitialLocked: BigInt!
+  pInitialLocked: BigInt!
+  lLocked: BigInt!
+  pLocked: BigInt!
+  lInterest: BigInt!
+  pInterest: BigInt!
 }
 
 type Pool @entity {
-  id: ID!,
-  lBalance: BigInt!,
-  lDebt: BigInt!,
-  pEnterPrice: BigInt!,
-  pExitPrice: BigInt!,
-  users: [String]!,
-  usersLength: BigInt!,
+  id: ID!
+  lBalance: BigInt!
+  lDebt: BigInt!
+  pEnterPrice: BigInt!
+  pExitPrice: BigInt!
+  users: [String]!
+  usersLength: BigInt!
+  lProposals: BigInt!
 }
 
 enum Status {
@@ -78,4 +97,14 @@ enum Status {
   EXECUTED
   PARTIALLY_REPAYED
   CLOSED
+}
+
+enum DistributionType {
+  DEBT_INTEREST
+  POOL_DISTRIBUTIONS
+}
+
+enum BalanceChangeType {
+  DEPOSIT
+  WITHDRAW
 }

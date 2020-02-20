@@ -2,12 +2,11 @@ import {
   BigInt,
   ByteArray,
   Address,
-  Bytes,
   crypto,
   log
 } from "@graphprotocol/graph-ts";
 import { Status, FundsModule } from "../generated/FundsModule/FundsModule";
-import { Transfer } from "../generated/PToken/PToken";
+import { Transfer, DistributionsClaimed } from "../generated/PToken/PToken";
 import {
   Deposit,
   Withdraw
@@ -28,16 +27,16 @@ import {
   Debt,
   ExitBalance,
   Pool,
-  Pledge
+  Pledge,
+  Earning,
+  BalanceChange
 } from "../generated/schema";
 import {
   concat,
   latest_date,
-  inverseCurveFunction,
+  calculateExitInverseWithFee,
   DAY,
-  COLLATERAL_TO_DEBT_RATIO_MULTIPLIER,
-  PERCENT_MULTIPLIER,
-  WITHDRAW_FEE
+  COLLATERAL_TO_DEBT_RATIO_MULTIPLIER
 } from "./utils";
 
 // (!) - hight concentration edit only
@@ -45,11 +44,13 @@ export function handleStatus(event: Status): void {
   let latest_pool = get_latest_pool();
   let pool = new Pool(event.block.timestamp.toHex());
   pool.lBalance = event.params.lBalance;
-  pool.lDebt = event.params.lDebt;
+  pool.lProposals = event.params.lProposals;
+  pool.lDebt = event.params.lDebts;
   pool.pEnterPrice = event.params.pEnterPrice;
   pool.pExitPrice = event.params.pExitPrice;
   pool.usersLength = latest_pool.usersLength;
   pool.users = latest_pool.users;
+  pool.lProposals = BigInt.fromI32(0);
 
   //refresh latest
   latest_pool.lBalance = pool.lBalance;
@@ -73,7 +74,11 @@ export function handleStatus(event: Status): void {
       // add exit_balance record
       let new_history_record = init_exit_balance(event.block.timestamp, user);
       new_history_record.pBalance = user.pBalance;
-      new_history_record.lBalance = calculate_lBalance(user.pBalance);
+      new_history_record.lBalance = calculate_lBalance(
+        user.id,
+        pool.lBalance.minus(pool.lProposals),
+        user.pBalance
+      );
       new_history_record.date = event.block.timestamp;
       new_history_record.save();
 
@@ -119,6 +124,8 @@ export function handleTransfer(event: Transfer): void {
   let from_exit_balance = get_exit_balance(event.block.timestamp, from);
   from_exit_balance.pBalance = from.pBalance.minus(event.params.value);
   let from_exit_lBalanceCalculated = calculate_lBalance(
+    from.id,
+    pool.lBalance.minus(pool.lProposals),
     from_exit_balance.pBalance
   );
   from_exit_balance.lBalance = from_exit_lBalanceCalculated;
@@ -128,7 +135,11 @@ export function handleTransfer(event: Transfer): void {
   // add exit_balance to
   let to_exit_balance = get_exit_balance(event.block.timestamp, to);
   to_exit_balance.pBalance = to.pBalance.plus(event.params.value);
-  let to_exit_lBalanceCalculated = calculate_lBalance(to_exit_balance.pBalance);
+  let to_exit_lBalanceCalculated = calculate_lBalance(
+    to.id,
+    pool.lBalance.minus(pool.lProposals),
+    to_exit_balance.pBalance
+  );
   to_exit_balance.lBalance = to_exit_balance.lBalance.plus(
     to_exit_lBalanceCalculated
   );
@@ -153,8 +164,13 @@ export function handleDeposit(event: Deposit): void {
 
   createNewUserSnapshot(user, event.block.timestamp);
 
+  let balance_change = init_balance_change(event.block.timestamp, user);
+  balance_change.amount = event.params.lAmount;
+  balance_change.type = "DEPOSIT";
+  balance_change.save();
+
   // update pool balance
-  pool.lBalance = event.params.lAmount;
+  pool.lBalance = pool.lBalance.plus(event.params.lAmount);
   pool.save();
 }
 
@@ -168,6 +184,10 @@ export function handleWithdraw(event: Withdraw): void {
   user.save();
 
   createNewUserSnapshot(user, event.block.timestamp);
+  let balance_change = init_balance_change(event.block.timestamp, user);
+  balance_change.amount = event.params.lAmountUser;
+  balance_change.type = "WITHDRAW";
+  balance_change.save();
 
   // update pool balance
   pool.lBalance = pool.lBalance.minus(event.params.lAmountTotal);
@@ -401,6 +421,24 @@ export function handleUnlockedPledgeWithdraw(
 
   createNewUserSnapshot(pledger, event.block.timestamp);
 
+  // user earnings
+  let pool = get_latest_pool();
+  let earning = init_earning(event.block.timestamp, pledger);
+  earning.type = "DEBT_INTEREST";
+  earning.pAmount = event.params.pAmount;
+  earning.lAmount = calculate_lBalance(
+    pledger.id,
+    pool.lBalance.minus(pool.lProposals),
+    pledger.pBalance.plus(event.params.pAmount)
+  ).minus(
+    calculate_lBalance(
+      pledger.id,
+      pool.lBalance.minus(pool.lProposals),
+      pledger.pBalance
+    )
+  );
+  earning.save();
+
   pledge.lLocked = pledge.lLocked.minus(l_to_unlock);
   pledge.pLocked = pledge.pLocked.minus(pUnlockedPledge);
   pledge.lInterest = BigInt.fromI32(0);
@@ -439,7 +477,16 @@ export function handleDebtDefaultExecuted(event: DebtDefaultExecuted): void {
   pool.save();
 }
 
-export function get_user(address: String): User {
+export function handleDistributionsClaimed(event: DistributionsClaimed): void {
+  let user = get_user(event.params.account.toHexString());
+  user.pBalance = user.pBalance.plus(event.params.amount);
+  user.lastDistributionIndex = event.params.nextDistribution;
+  user.save();
+}
+
+/*            HELPERS           */
+
+export function get_user(address: string): User {
   let user = User.load(address);
   if (user == null) {
     user = new User(address);
@@ -454,7 +501,7 @@ export function get_user(address: String): User {
   }
   return user as User;
 }
-export function get_pledge(hash: String): Pledge {
+export function get_pledge(hash: string): Pledge {
   let pledge = Pledge.load(hash);
   if (pledge == null) {
     pledge = new Pledge(hash);
@@ -492,6 +539,26 @@ export function init_exit_balance(t: BigInt, sender: User): ExitBalance {
   return exit_balance as ExitBalance;
 }
 
+export function init_earning(t: BigInt, sender: User): Earning {
+  let earning = new Earning(construct_two_part_id(t.toHex(), sender.id));
+  earning.pAmount = BigInt.fromI32(0);
+  earning.lAmount = BigInt.fromI32(0);
+  earning.address = sender.id;
+  earning.date = t;
+
+  return earning as Earning;
+}
+export function init_balance_change(t: BigInt, sender: User): BalanceChange {
+  let balance_change = new BalanceChange(
+    construct_two_part_id(t.toHex(), sender.id)
+  );
+  balance_change.amount = BigInt.fromI32(0);
+  balance_change.address = sender.id;
+  balance_change.date = t;
+
+  return balance_change as BalanceChange;
+}
+
 export function get_latest_pool(): Pool {
   let latest_pool = Pool.load(latest_date.toHex());
   if (latest_pool == null) {
@@ -502,20 +569,29 @@ export function get_latest_pool(): Pool {
     latest_pool.pExitPrice = BigInt.fromI32(0);
     latest_pool.usersLength = BigInt.fromI32(0);
     latest_pool.users = [];
+    latest_pool.lProposals = BigInt.fromI32(0);
   }
   return latest_pool as Pool;
 }
 
 //POOL FEE EXTRACTED HERE
-export function calculate_lBalance(pAmount: BigInt): BigInt {
-  // let fee: BigInt = funds_mod.withdrawFeePercent();
-  // let result = Funds_mod.calculateExitInverse(pAmount);
-  // let funds_mod = FundsModule.bind(address);
+export function calculate_lBalance(
+  user: string,
+  liquidAssets: BigInt,
+  pAmount: BigInt
+): BigInt {
+  // take negative balance into account
+  let isNeg = pAmount.lt(BigInt.fromI32(0));
+  let isMint = user == "0x0000000000000000000000000000000000000000"; // Discard mint
+  pAmount = pAmount.abs();
 
-  let withdraw: BigInt = inverseCurveFunction(pAmount);
-  let feeAmount = withdraw.times(WITHDRAW_FEE).div(PERCENT_MULTIPLIER);
+  if (isNeg && !isMint) {
+    log.warning(`Account {} have less than 0 tokens.`, [user]);
+  }
 
-  return withdraw.minus(feeAmount);
+  let withdraw = calculateExitInverseWithFee(liquidAssets, pAmount);
+
+  return isNeg ? BigInt.fromI32(0) : withdraw;
 }
 
 // update all pledges interests after repay
@@ -640,7 +716,7 @@ export function calculate_progress(proposal: Debt): string {
   return progress.toHex();
 }
 
-function construct_three_part_id(a: String, b: String, c: String): String {
+function construct_three_part_id(a: string, b: string, c: string): string {
   return crypto
     .keccak256(
       ByteArray.fromHexString(
@@ -704,7 +780,7 @@ function normalizeLength(str: string): string {
   return s;
 }
 
-function debtProposalId(address: String, proposalId: String): String {
+function debtProposalId(address: string, proposalId: string): string {
   return construct_two_part_id(address, proposalId);
 }
 
@@ -712,7 +788,7 @@ function pledgeIdFromRaw(
   supporter: Address,
   borrower: Address,
   proposalId: BigInt
-): String {
+): string {
   return pledgeId(
     supporter.toHexString(),
     borrower.toHexString(),
@@ -721,10 +797,10 @@ function pledgeIdFromRaw(
 }
 
 function pledgeId(
-  supporter: String,
-  borrower: String,
-  proposalId: String
-): String {
+  supporter: string,
+  borrower: string,
+  proposalId: string
+): string {
   return construct_three_part_id(supporter, borrower, proposalId);
 }
 

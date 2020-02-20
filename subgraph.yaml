@@ -6,9 +6,9 @@ dataSources:
     name: FundsModule
     network: rinkeby
     source:
-      address: "0xf97C9b8180650cAa2a67F73d2743C6992B2110a5"
+      address: "0x74Cd4069C5AaAbb4F7e8a06c499910BD6897ED68"
       abi: FundsModule
-      startBlock: 5000000
+      startBlock: 5800000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -19,16 +19,16 @@ dataSources:
         - name: FundsModule
           file: ./abis/FundsModule.json
       eventHandlers:
-        - event: Status(uint256,uint256,uint256,uint256)
+        - event: Status(uint256,uint256,uint256,uint256,uint256)
           handler: handleStatus
       file: ./src/mapping.ts
   - kind: ethereum/contract
     name: LiquidityModule
     network: rinkeby
     source:
-      address: "0x338a0F148cfD0cb7fc2018cbD3ee8FFA5d3Fb55D"
+      address: "0xA66fAE2A84aB13CA6284c8610c85632326C62D70"
       abi: LiquidityModule
-      startBlock: 5000000
+      startBlock: 5800000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -50,9 +50,9 @@ dataSources:
     name: LoanModule
     network: rinkeby
     source:
-      address: "0xF9E9934AD57bc983f9847Dc1dCb737BD5D5e99f7"
+      address: "0xE9e55bB8e77d380D38f4224559A5D7C9606D8265"
       abi: LoanModule
-      startBlock: 5000000
+      startBlock: 5800000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -88,9 +88,9 @@ dataSources:
     name: PToken
     network: rinkeby
     source:
-      address: "0xCbE6E7eA6aC7e9f3519a7599a011f3f54b66dD77"
+      address: "0x325a5ac54FBa5EFbf480FB83B1f712bd5e2c0a9f"
       abi: PToken
-      startBlock: 5000000
+      startBlock: 5800000
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -102,7 +102,11 @@ dataSources:
           file: ./abis/PToken.json
         - name: FundsModule
           file: ./abis/FundsModule.json
+        - name: DistributionToken
+          file: ./abis/DistributionToken.json
       eventHandlers:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
+        - event: DistributionsClaimed(address,uint256,uint256,uint256)
+          handler: handleDistributionsClaimed
       file: ./src/mapping.ts
