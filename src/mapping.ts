@@ -425,11 +425,11 @@ export function handleUnlockedPledgeWithdraw(
   let pool = get_latest_pool();
   let earning = init_earning(event.block.timestamp, pledger);
   earning.type = "DEBT_INTEREST";
-  earning.pAmount = event.params.pAmount;
+  earning.pAmount = pledge.pInterest;
   earning.lAmount = calculate_lBalance(
     pledger.id,
     pool.lBalance.minus(pool.lProposals),
-    pledger.pBalance.plus(event.params.pAmount)
+    pledger.pBalance.plus(pledge.pInterest)
   ).minus(
     calculate_lBalance(
       pledger.id,
@@ -482,6 +482,17 @@ export function handleDistributionsClaimed(event: DistributionsClaimed): void {
   user.pBalance = user.pBalance.plus(event.params.amount);
   user.lastDistributionIndex = event.params.nextDistribution;
   user.save();
+  let pool = get_latest_pool();
+
+  let earning = init_earning(event.block.timestamp, user);
+  earning.pAmount = event.params.amount;
+  earning.lAmount = calculate_lBalance(
+    user.id,
+    pool.lBalance,
+    event.params.amount
+  );
+  earning.type = "POOL_DISTRIBUTIONS"
+  earning.save();
 }
 
 /*            HELPERS           */
