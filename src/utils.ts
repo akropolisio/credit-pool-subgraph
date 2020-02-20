@@ -75,7 +75,6 @@ export function calculateExitInverseWithFee(
 ): BigInt {
   let withdraw = calculateExitInverse(liquidAssets, pAmount);
   let withdrawP = withdraw.times(WITHDRAW_FEE).div(PERCENT_MULTIPLIER);
-  log.warning("FEE {}", [withdrawP.toString()])
   withdraw = withdraw.minus(withdrawP);
 
   return withdraw;
