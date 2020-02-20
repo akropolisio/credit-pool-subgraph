@@ -488,8 +488,14 @@ export function handleDistributionsClaimed(event: DistributionsClaimed): void {
   earning.pAmount = event.params.amount;
   earning.lAmount = calculate_lBalance(
     user.id,
-    pool.lBalance,
-    event.params.amount
+    pool.lBalance.minus(pool.lProposals),
+    user.pBalance.plus(event.params.amount)
+  ).minus(
+    calculate_lBalance(
+      user.id,
+      pool.lBalance.minus(pool.lProposals),
+      user.pBalance
+    )
   );
   earning.type = "POOL_DISTRIBUTIONS"
   earning.save();
