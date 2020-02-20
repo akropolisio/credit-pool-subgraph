@@ -582,13 +582,11 @@ export function calculate_lBalance(
 ): BigInt {
   // take negative balance into account
   let isNeg = pAmount.lt(BigInt.fromI32(0));
+  let isMint = user == "0x0000000000000000000000000000000000000000"; // Discard mint
   pAmount = pAmount.abs();
 
-  if (isNeg) {
-    log.warning(
-      `Account {} have less than 0 tokens. Discard this message if this is a mint operation.`,
-      [user]
-    );
+  if (isNeg && !isMint) {
+    log.warning(`Account {} have less than 0 tokens.`, [user]);
   }
 
   let withdraw = calculateExitInverseWithFee(liquidAssets, pAmount);
