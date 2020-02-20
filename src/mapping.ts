@@ -425,11 +425,11 @@ export function handleUnlockedPledgeWithdraw(
   let pool = get_latest_pool();
   let earning = init_earning(event.block.timestamp, pledger);
   earning.type = "DEBT_INTEREST";
-  earning.pAmount = event.params.pAmount;
+  earning.pAmount = pledge.pInterest;
   earning.lAmount = calculate_lBalance(
     pledger.id,
     pool.lBalance.minus(pool.lProposals),
-    pledger.pBalance.plus(event.params.pAmount)
+    pledger.pBalance.plus(pledge.pInterest)
   ).minus(
     calculate_lBalance(
       pledger.id,
