@@ -50,9 +50,9 @@ export function handleStatus(event: Status): void {
   pool.pExitPrice = event.params.pExitPrice;
   pool.usersLength = latest_pool.usersLength;
   pool.users = latest_pool.users;
-  pool.lProposals = BigInt.fromI32(0);
-
+  
   //refresh latest
+  latest_pool.lProposals = pool.lProposals;
   latest_pool.lBalance = pool.lBalance;
   latest_pool.lDebt = pool.lDebt;
   latest_pool.pEnterPrice = pool.pEnterPrice;
@@ -64,13 +64,13 @@ export function handleStatus(event: Status): void {
   // WARN: timestamp is returned in seconds
   let today = event.block.timestamp.div(DAY);
   let exit_balance = ExitBalance.load(today.toHex());
-
+  
   // once a day
   if (exit_balance == null) {
     let users = pool.users as Array<string>;
     for (let i = 0; i < pool.users.length; i++) {
       let user = User.load(users[i]) as User;
-
+      
       // add exit_balance record
       let new_history_record = init_exit_balance(event.block.timestamp, user);
       new_history_record.pBalance = user.pBalance;
@@ -168,6 +168,7 @@ export function handleDeposit(event: Deposit): void {
   balance_change.amount = event.params.lAmount;
   balance_change.type = "DEPOSIT";
   balance_change.save();
+
 
   // update pool balance
   pool.lBalance = pool.lBalance.plus(event.params.lAmount);
@@ -389,11 +390,6 @@ export function handleRepay(event: Repay): void {
   user.save();
 
   createNewUserSnapshot(user, event.block.timestamp);
-
-  // update pool
-  pool.lBalance = pool.lBalance.plus(event.params.lFullPaymentAmount);
-  pool.lDebt = pool.lDebt.minus(repayment);
-  pool.save();
 }
 
 // (!) - hight concentration edit only
@@ -410,16 +406,6 @@ export function handleUnlockedPledgeWithdraw(
   let pUnlockedPledge = event.params.pAmount.minus(pledge.pInterest);
 
   let l_to_unlock = pledge.lLocked.times(pUnlockedPledge).div(pledge.pLocked);
-
-  pledger.pBalance = pledger.pBalance
-    .plus(pUnlockedPledge)
-    .plus(pledge.pInterest);
-  pledger.lBalance = pledger.lBalance.plus(l_to_unlock).plus(pledge.lInterest);
-  pledger.lLockedSum = pledger.lLockedSum.minus(l_to_unlock);
-  pledger.pLockedSum = pledger.pLockedSum.minus(pUnlockedPledge);
-  pledger.save();
-
-  createNewUserSnapshot(pledger, event.block.timestamp);
 
   // user earnings
   let pool = get_latest_pool();
@@ -438,13 +424,24 @@ export function handleUnlockedPledgeWithdraw(
     )
   );
   earning.save();
+  
+  pledger.pBalance = pledger.pBalance
+    .plus(pUnlockedPledge)
+    .plus(pledge.pInterest);
+  pledger.lBalance = pledger.lBalance.plus(l_to_unlock).plus(pledge.lInterest);
+  pledger.lLockedSum = pledger.lLockedSum.minus(l_to_unlock);
+  pledger.pLockedSum = pledger.pLockedSum.minus(pUnlockedPledge);
+  pledger.save();
 
+  createNewUserSnapshot(pledger, event.block.timestamp);
+  
   pledge.lLocked = pledge.lLocked.minus(l_to_unlock);
   pledge.pLocked = pledge.pLocked.minus(pUnlockedPledge);
   pledge.lInterest = BigInt.fromI32(0);
   pledge.pInterest = BigInt.fromI32(0);
   pledge.withdrawn = pledge.withdrawn.plus(event.params.pAmount);
   pledge.save();
+
 
   //remove user from pledgers on a debt if he withdtraw his part entirely
   if (pledge.withdrawn.equals(pledge.pLocked)) {
@@ -603,7 +600,7 @@ export function calculate_lBalance(
   pAmount = pAmount.abs();
 
   if (isNeg && !isMint) {
-    log.warning(`Account {} have less than 0 tokens.`, [user]);
+    log.debug(`Account {} have less than 0 tokens.`, [user]);
   }
 
   let withdraw = calculateExitInverseWithFee(liquidAssets, pAmount);
