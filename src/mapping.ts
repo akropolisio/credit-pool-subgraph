@@ -414,6 +414,7 @@ export function get_user(address: string): User {
     user.lBalance = BigInt.fromI32(0);
     user.pBalance = BigInt.fromI32(0);
     user.pLockedSum = BigInt.fromI32(0);
+    user.pInterestSum = BigInt.fromI32(0);
     user.unlockLiquiditySum = BigInt.fromI32(0);
     user.credit = BigInt.fromI32(0);
   }
