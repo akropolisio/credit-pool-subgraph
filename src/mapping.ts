@@ -477,7 +477,7 @@ export function handleDebtDefaultExecuted(event: DebtDefaultExecuted): void {
 export function handleDistributionsClaimed(event: DistributionsClaimed): void {
   let user = get_user(event.params.account.toHexString());
   user.pBalance = user.pBalance.plus(event.params.amount);
-  user.lastDistributionIndex = event.params.nextDistribution;
+  user.lastDistributionIndex = event.params.toDistribution;
   user.save();
   let pool = get_latest_pool();
 
