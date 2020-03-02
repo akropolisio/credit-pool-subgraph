@@ -211,7 +211,7 @@ export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
   pool.lDebt = pool.lDebt.plus(proposal.total);
   pool.save();
 
-  update_unlock_liquidities(proposal);
+  update_unlock_liquidities(proposal, 'PROPOSAL EXECUTED');
 }
 
 // (!) - hight concentration edit only
@@ -242,6 +242,17 @@ export function handlePledgeAdded(event: PledgeAdded): void {
   pledge.pInitialLocked = pledge.pLocked;
   pledge.proposal_id = proposal.proposal_id;
   pledge.save();
+
+  if (pledger.id === "0x5d507818b52a891fe296463adc01eed9c51e218b") {
+    log.warning("PLEDGE ADDED >> ", [
+      "prevLiquiditySum:",
+      pledger.unlockLiquiditySum.toString(),
+      "increasedBy:",
+      event.params.lAmount.toString(),
+      "nextLiquiditySum:",
+      pledger.unlockLiquiditySum.plus(event.params.lAmount).toString()
+    ]);
+  }
 
   // update pledger`s balances & locked
   pledger.pBalance = pledger.pBalance.minus(event.params.pAmount);
@@ -295,6 +306,17 @@ export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
   pledge.unlockLiquidity = pledge.unlockLiquidity.minus(event.params.lAmount);
   pledge.pInitialLocked = pledge.pLocked;
   pledge.save();
+
+  if (pledger.id === "0x5d507818b52a891fe296463adc01eed9c51e218b") {
+    log.warning("PLEDGE WITHDRAW >> ", [
+      "prevLiquiditySum:",
+      pledger.unlockLiquiditySum.toString(),
+      "decreasedBy:",
+      event.params.lAmount.toString(),
+      "nextLiquiditySum:",
+      pledger.unlockLiquiditySum.minus(event.params.lAmount).toString()
+    ]);
+  }
 
   pledger.pBalance = pledger.pBalance.plus(p_to_sub);
   pledger.pLockedSum = pledger.pLockedSum.minus(p_to_sub);
@@ -353,7 +375,7 @@ export function handleRepay(event: Repay): void {
     event.block.timestamp
   );
 
-  update_unlock_liquidities(debt);
+  update_unlock_liquidities(debt, 'DEBT REPAY');
 
   let user = User.load(debt.borrower);
   user.credit = user.credit.minus(repayment);
@@ -391,6 +413,7 @@ export function handleUnlockedPledgeWithdraw(
 
   pledger.pBalance = pledger.pBalance.plus(event.params.pAmount);
   pledger.pLockedSum = pledger.pLockedSum.minus(pUnlockedPledge);
+  pledger.pInterestSum = pledger.pInterestSum.minus(pledge.pInterest);
   pledger.save();
 
   createNewUserSnapshot(pledger, event.block.timestamp);
@@ -414,7 +437,7 @@ export function handleDebtDefaultExecuted(event: DebtDefaultExecuted): void {
 
   default_pledge_interests(debt, event.params.pBurned, event.block.timestamp);
 
-  update_unlock_liquidities(debt);
+  update_unlock_liquidities(debt, 'DEBT DEFAULT');
 
   // update pool
   let credit_left = debt.total.minus(debt.repayed);
@@ -583,7 +606,7 @@ export function calculate_lBalance(
 }
 
 // update unlockLiquidity in pledges and users
-export function update_unlock_liquidities(debt: Debt): void {
+export function update_unlock_liquidities(debt: Debt, reason: string): void {
   let nextUnlockLiquidity =
     debt.status === "CLOSED"
       ? BigInt.fromI32(0)
@@ -598,6 +621,21 @@ export function update_unlock_liquidities(debt: Debt): void {
 
     pledge.unlockLiquidity = nextUnlockLiquidity;
     pledge.save();
+
+    if (user.id === "0x5d507818b52a891fe296463adc01eed9c51e218b") {
+      log.warning(reason + " >> ", [
+        "prevLiquiditySum:",
+        user.unlockLiquiditySum.toString(),
+        "prevUnlockLiquidity:",
+        prevUnlockLiquidity.toString(),
+        "nextUnlockLiquidity:",
+        nextUnlockLiquidity.toString(),
+        "nextLiquiditySum:",
+        user.unlockLiquiditySum
+          .minus(prevUnlockLiquidity)
+          .plus(nextUnlockLiquidity).toString()
+      ]);
+    }
 
     user.unlockLiquiditySum
       .minus(prevUnlockLiquidity)
