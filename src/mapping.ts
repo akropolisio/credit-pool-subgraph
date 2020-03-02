@@ -357,6 +357,7 @@ export function handleUnlockedPledgeWithdraw(event: UnlockedPledgeWithdraw): voi
 
   pledger.pBalance = pledger.pBalance.plus(event.params.pAmount);
   pledger.pLockedSum = pledger.pLockedSum.minus(pUnlockedPledge);
+  pledger.pInterestSum = pledger.pInterestSum.minus(pledge.pInterest);
   pledger.save();
 
   createNewUserSnapshot(pledger, event.block.timestamp);
@@ -416,6 +417,7 @@ export function get_user(address: string): User {
     user.pLockedSum = BigInt.fromI32(0);
     user.pInterestSum = BigInt.fromI32(0);
     user.unlockLiquiditySum = BigInt.fromI32(0);
+    user.pInterestSum = BigInt.fromI32(0);
     user.credit = BigInt.fromI32(0);
   }
   return user as User;
@@ -549,7 +551,9 @@ export function update_unlock_liquidities(debt: Debt): void {
     pledge.unlockLiquidity = nextUnlockLiquidity;
     pledge.save();
 
-    user.unlockLiquiditySum.minus(prevUnlockLiquidity).plus(nextUnlockLiquidity);
+    user.unlockLiquiditySum = user.unlockLiquiditySum
+      .minus(prevUnlockLiquidity)
+      .plus(nextUnlockLiquidity);
     user.save();
   }
 }
