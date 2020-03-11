@@ -1,0 +1,17 @@
+name: CI
+
+on: pull_request
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install yarn dependencies
+      run: yarn
+    - name: Codegen
+      run: yarn codegen
+    - name: Build wasm
+      run: yarn build

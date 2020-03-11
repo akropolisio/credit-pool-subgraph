@@ -2,12 +2,10 @@ type User @entity {
   id: ID!
   lBalance: BigInt!
   pBalance: BigInt!
-  lLockedSum: BigInt!
-  pLockedSum: BigInt!
-  lInterestSum: BigInt!
   pInterestSum: BigInt!
+  pLockedSum: BigInt!
+  unlockLiquiditySum: BigInt!
   credit: BigInt!
-  history: [String!]!
   lastDistributionIndex: BigInt
 }
 
@@ -17,10 +15,9 @@ type UserSnapshot @entity {
   user: String!
   lBalance: BigInt!
   pBalance: BigInt!
-  lLockedSum: BigInt!
   pLockedSum: BigInt!
-  lInterestSum: BigInt!
   pInterestSum: BigInt!
+  unlockLiquiditySum: BigInt!
   credit: BigInt!
 }
 
@@ -72,12 +69,10 @@ type Pledge @entity {
   id: ID!
   proposal_id: String!
   pledger: String!
-  withdrawn: BigInt!
   lInitialLocked: BigInt!
   pInitialLocked: BigInt!
-  lLocked: BigInt!
   pLocked: BigInt!
-  lInterest: BigInt!
+  unlockLiquidity: BigInt!
   pInterest: BigInt!
 }
 
