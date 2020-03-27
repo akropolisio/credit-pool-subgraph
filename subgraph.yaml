@@ -69,6 +69,8 @@ dataSources:
         - name: LoanModule
           file: ./abis/LoanModule.json
       eventHandlers:
+        - event: DebtProposalCanceled(indexed address,uint256)
+          handler: handleDebtProposalCanceled
         - event: DebtProposalCreated(indexed address,uint256,uint256,uint256,bytes32)
           handler: handleDebtProposalCreated
         - event: PledgeAdded(indexed address,indexed address,uint256,uint256,uint256)
