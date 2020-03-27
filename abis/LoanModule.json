@@ -38,6 +38,25 @@
         "internalType": "uint256",
         "name": "proposal",
         "type": "uint256"
+      }
+    ],
+    "name": "DebtProposalCanceled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "proposal",
+        "type": "uint256"
       },
       {
         "indexed": false,
@@ -531,6 +550,27 @@
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "name": "activeDebts",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       },
       {
         "internalType": "uint256",
@@ -885,6 +925,21 @@
         "type": "uint256"
       }
     ],
+    "name": "cancelDebtProposal",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "proposal",
+        "type": "uint256"
+      }
+    ],
     "name": "executeDebtProposal",
     "outputs": [
       {
@@ -937,6 +992,21 @@
       }
     ],
     "name": "repayPTK",
+    "outputs": [],
+    "payable": false,
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "constant": false,
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "borrower",
+        "type": "address"
+      }
+    ],
+    "name": "repayAllInterest",
     "outputs": [],
     "payable": false,
     "stateMutability": "nonpayable",
@@ -1207,7 +1277,7 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "sender",
+        "name": "borrower",
         "type": "address"
       }
     ],
@@ -1217,6 +1287,32 @@
         "internalType": "bool",
         "name": "",
         "type": "bool"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "borrower",
+        "type": "address"
+      }
+    ],
+    "name": "getUnpaidInterest",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "totalLInterest",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalLInterestPerSecond",
+        "type": "uint256"
       }
     ],
     "payable": false,
