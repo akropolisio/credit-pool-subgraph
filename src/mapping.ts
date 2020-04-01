@@ -117,16 +117,13 @@ export function handleDeposit(event: Deposit): void {
         let new_users = pool.users;
         new_users.push(user.id);
         pool.users = new_users;
+        pool.save();
     }
 
     // update user balance
     user.pBalance = user.pBalance.plus(event.params.pAmount);
     user.lBalance = user.lBalance.plus(event.params.lAmount);
     user.save();
-
-    // update pool balance
-    pool.lBalance = pool.lBalance.plus(event.params.lAmount);
-    pool.save();
 
     // save history
     createNewUserSnapshot(user, event.block.timestamp);
@@ -148,10 +145,6 @@ export function handleWithdraw(event: Withdraw): void {
     );
     user.pBalance = user.pBalance.minus(event.params.pAmount);
     user.save();
-
-    // update pool balance
-    pool.lBalance = pool.lBalance.minus(event.params.lAmountTotal);
-    pool.save();
 
     // save history
     createNewUserSnapshot(user, event.block.timestamp);
