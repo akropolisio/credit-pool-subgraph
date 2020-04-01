@@ -191,7 +191,6 @@ export function handleDebtProposalCanceled(event: DebtProposalCanceled): void {
 
 
 export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
-    let pool = get_latest_pool();
     let debt_id = construct_two_part_id(
         event.params.sender.toHex(),
         event.params.proposal.toHex()
@@ -211,11 +210,6 @@ export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
     proposal.debt_id = event.params.debt;
     proposal.status = "EXECUTED";
     proposal.save();
-
-    // update pool
-    pool.lBalance = pool.lBalance.minus(proposal.total);
-    pool.lDebt = pool.lDebt.plus(proposal.total);
-    pool.save();
 
     update_unlock_liquidities(proposal);
 }
@@ -408,7 +402,6 @@ export function handleUnlockedPledgeWithdraw(
 }
 
 export function handleDebtDefaultExecuted(event: DebtDefaultExecuted): void {
-    let pool = get_latest_pool();
     let loan = LoanModule.bind(event.address);
     let loan_debt = loan.debts(event.params.borrower, event.params.debt);
     let debt_id = construct_two_part_id(
@@ -428,10 +421,6 @@ export function handleDebtDefaultExecuted(event: DebtDefaultExecuted): void {
     let credit_left = debt.total.minus(debt.repayed);
     user.credit = user.credit.minus(credit_left);
     user.save();
-
-    // update pool
-    pool.lDebt = pool.lDebt.minus(credit_left);
-    pool.save();
 }
 
 export function handleDistributionsClaimed(event: DistributionsClaimed): void {
