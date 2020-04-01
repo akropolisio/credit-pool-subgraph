@@ -430,8 +430,13 @@ export function handleDebtDefaultExecuted(event: DebtDefaultExecuted): void {
 
     update_unlock_liquidities(debt);
 
-    // update pool
+    // update user credit
+    let user = get_user(event.params.borrower.toHex());
     let credit_left = debt.total.minus(debt.repayed);
+    user.credit = user.credit.minus(credit_left);
+    user.save();
+
+    // update pool
     pool.lDebt = pool.lDebt.minus(credit_left);
     pool.save();
 }
