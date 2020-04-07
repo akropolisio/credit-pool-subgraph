@@ -80,11 +80,13 @@ type Pool @entity {
   id: ID!
   lBalance: BigInt!
   lDebt: BigInt!
+  lProposals: BigInt!
   pEnterPrice: BigInt!
   pExitPrice: BigInt!
   users: [String]!
   usersLength: BigInt!
-  lProposals: BigInt!
+  depositSum: BigInt!
+  withdrawSum: BigInt!
 }
 
 enum Status {
