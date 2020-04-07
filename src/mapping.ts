@@ -51,6 +51,8 @@ export function handleStatus(event: Status): void {
     pool.pExitPrice = event.params.pExitPrice;
     pool.usersLength = latest_pool.usersLength;
     pool.users = latest_pool.users;
+    pool.depositSum = latest_pool.depositSum;
+    pool.withdrawSum = latest_pool.withdrawSum;
 
     //refresh latest
     latest_pool.lProposals = pool.lProposals;
@@ -117,8 +119,9 @@ export function handleDeposit(event: Deposit): void {
         let new_users = pool.users;
         new_users.push(user.id);
         pool.users = new_users;
-        pool.save();
     }
+    pool.depositSum = pool.depositSum.plus(event.params.lAmount);
+    pool.save();
 
     // update user balance
     user.pBalance = user.pBalance.plus(event.params.pAmount);
@@ -138,6 +141,9 @@ export function handleDeposit(event: Deposit): void {
 
 export function handleWithdraw(event: Withdraw): void {
     let pool = get_latest_pool();
+    pool.withdrawSum = pool.withdrawSum.plus(event.params.lAmountTotal);
+    pool.save();
+
     //TODO: make use of the actual `sender` field
     let user = get_user(event.transaction.from.toHexString());
     user.lBalance = user.lBalance.minus(
@@ -535,11 +541,13 @@ export function get_latest_pool(): Pool {
         latest_pool = new Pool(latest_date.toHex());
         latest_pool.lBalance = BigInt.fromI32(0);
         latest_pool.lDebt = BigInt.fromI32(0);
+        latest_pool.lProposals = BigInt.fromI32(0);
         latest_pool.pEnterPrice = BigInt.fromI32(0);
         latest_pool.pExitPrice = BigInt.fromI32(0);
         latest_pool.usersLength = BigInt.fromI32(0);
         latest_pool.users = [];
-        latest_pool.lProposals = BigInt.fromI32(0);
+        latest_pool.depositSum = BigInt.fromI32(0);
+        latest_pool.withdrawSum = BigInt.fromI32(0);
     }
     return latest_pool as Pool;
 }
