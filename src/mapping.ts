@@ -117,16 +117,13 @@ export function handleDeposit(event: Deposit): void {
         let new_users = pool.users;
         new_users.push(user.id);
         pool.users = new_users;
+        pool.save();
     }
 
     // update user balance
     user.pBalance = user.pBalance.plus(event.params.pAmount);
     user.lBalance = user.lBalance.plus(event.params.lAmount);
     user.save();
-
-    // update pool balance
-    pool.lBalance = pool.lBalance.plus(event.params.lAmount);
-    pool.save();
 
     // save history
     createNewUserSnapshot(user, event.block.timestamp);
@@ -148,10 +145,6 @@ export function handleWithdraw(event: Withdraw): void {
     );
     user.pBalance = user.pBalance.minus(event.params.pAmount);
     user.save();
-
-    // update pool balance
-    pool.lBalance = pool.lBalance.minus(event.params.lAmountTotal);
-    pool.save();
 
     // save history
     createNewUserSnapshot(user, event.block.timestamp);
@@ -198,7 +191,6 @@ export function handleDebtProposalCanceled(event: DebtProposalCanceled): void {
 
 
 export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
-    let pool = get_latest_pool();
     let debt_id = construct_two_part_id(
         event.params.sender.toHex(),
         event.params.proposal.toHex()
@@ -218,11 +210,6 @@ export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
     proposal.debt_id = event.params.debt;
     proposal.status = "EXECUTED";
     proposal.save();
-
-    // update pool
-    pool.lBalance = pool.lBalance.minus(proposal.total);
-    pool.lDebt = pool.lDebt.plus(proposal.total);
-    pool.save();
 
     update_unlock_liquidities(proposal);
 }
@@ -415,7 +402,6 @@ export function handleUnlockedPledgeWithdraw(
 }
 
 export function handleDebtDefaultExecuted(event: DebtDefaultExecuted): void {
-    let pool = get_latest_pool();
     let loan = LoanModule.bind(event.address);
     let loan_debt = loan.debts(event.params.borrower, event.params.debt);
     let debt_id = construct_two_part_id(
@@ -430,10 +416,11 @@ export function handleDebtDefaultExecuted(event: DebtDefaultExecuted): void {
 
     update_unlock_liquidities(debt);
 
-    // update pool
+    // update user credit
+    let user = get_user(event.params.borrower.toHex());
     let credit_left = debt.total.minus(debt.repayed);
-    pool.lDebt = pool.lDebt.minus(credit_left);
-    pool.save();
+    user.credit = user.credit.minus(credit_left);
+    user.save();
 }
 
 export function handleDistributionsClaimed(event: DistributionsClaimed): void {
