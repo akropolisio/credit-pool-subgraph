@@ -43,25 +43,14 @@ import {
 // (!) - hight concentration edit only
 export function handleStatus(event: Status): void {
     let latest_pool = get_latest_pool();
-    let pool = new Pool(event.block.timestamp.toHex());
-    pool.lBalance = event.params.lBalance;
-    pool.lProposals = event.params.lProposals;
-    pool.lDebt = event.params.lDebts;
-    pool.pEnterPrice = event.params.pEnterPrice;
-    pool.pExitPrice = event.params.pExitPrice;
-    pool.usersLength = latest_pool.usersLength;
-    pool.users = latest_pool.users;
-    pool.depositSum = latest_pool.depositSum;
-    pool.withdrawSum = latest_pool.withdrawSum;
 
-    //refresh latest
-    latest_pool.lProposals = pool.lProposals;
-    latest_pool.lBalance = pool.lBalance;
-    latest_pool.lDebt = pool.lDebt;
-    latest_pool.pEnterPrice = pool.pEnterPrice;
-    latest_pool.pExitPrice = pool.pExitPrice;
+    latest_pool.lProposals = event.params.lProposals;
+    latest_pool.lBalance = event.params.lBalance;
+    latest_pool.lDebt = event.params.lDebts;
+    latest_pool.pEnterPrice = event.params.pEnterPrice;
+    latest_pool.pExitPrice = event.params.pExitPrice;
     latest_pool.save();
-    pool.save();
+    addPoolSnapshot(event.block.timestamp, latest_pool);
 
     // add new balance in history for all users once a day
     // WARN: timestamp is returned in seconds
@@ -70,12 +59,12 @@ export function handleStatus(event: Status): void {
 
     // once a day
     if (exit_balance == null) {
-        let users = pool.users as Array<string>;
-        for (let i = 0; i < pool.users.length; i++) {
+        let users = latest_pool.users as Array<string>;
+        for (let i = 0; i < latest_pool.users.length; i++) {
             let user = User.load(users[i]) as User;
 
             // add exit_balance record
-            init_exit_balance(event.block.timestamp, user, pool).save();
+            init_exit_balance(event.block.timestamp, user, latest_pool).save();
 
             // createNewUserSnapshot(user, event.block.timestamp); // don't need, because updated in handleTransfer
         }
@@ -109,6 +98,8 @@ export function handleTransfer(event: Transfer): void {
         to.save();
     }
     pool.save();
+
+    addPoolSnapshot(event.block.timestamp, pool);
 }
 
 export function handleDeposit(event: Deposit): void {
@@ -122,6 +113,7 @@ export function handleDeposit(event: Deposit): void {
     }
     pool.depositSum = pool.depositSum.plus(event.params.lAmount);
     pool.save();
+    addPoolSnapshot(event.block.timestamp, pool);
 
     // update user balance
     user.pBalance = user.pBalance.plus(event.params.pAmount);
@@ -143,6 +135,7 @@ export function handleWithdraw(event: Withdraw): void {
     let pool = get_latest_pool();
     pool.withdrawSum = pool.withdrawSum.plus(event.params.lAmountTotal);
     pool.save();
+    addPoolSnapshot(event.block.timestamp, pool);
 
     //TODO: make use of the actual `sender` field
     let user = get_user(event.transaction.from.toHexString());
@@ -190,7 +183,7 @@ export function handleDebtProposalCanceled(event: DebtProposalCanceled): void {
         event.params.sender.toHexString(),
         event.params.proposal.toHex()
     );
-    let debt = Debt.load(debt_id);
+    let debt = Debt.load(debt_id)!;
     debt.status = "CLOSED";
     debt.save();
 }
@@ -204,7 +197,7 @@ export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
     let proposal = Debt.load(debt_id) as Debt;
 
     // update current user credit
-    let user = User.load(proposal.borrower);
+    let user = User.load(proposal.borrower)!;
     user.credit = user.credit.plus(proposal.total);
     user.save();
 
@@ -329,7 +322,6 @@ export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
 
 // (!) - hight concentration edit only
 export function handleRepay(event: Repay): void {
-    let pool = get_latest_pool();
     let loan = LoanModule.bind(event.address);
     let loan_debt = loan.debts(event.params.sender, event.params.debt);
     // Not `loan_debt.proposal` because of graph-cli codegen bug.
@@ -361,7 +353,7 @@ export function handleRepay(event: Repay): void {
 
     update_unlock_liquidities(debt);
 
-    let user = User.load(debt.borrower);
+    let user = User.load(debt.borrower)!;
     user.credit = user.credit.minus(repayment);
     user.save();
 
@@ -550,6 +542,21 @@ export function get_latest_pool(): Pool {
         latest_pool.withdrawSum = BigInt.fromI32(0);
     }
     return latest_pool as Pool;
+}
+
+function addPoolSnapshot(timestamp: BigInt, latestPool: Pool): void {
+    let pool = new Pool(timestamp.toHex());
+    pool.lBalance = latestPool.lBalance;
+    pool.lDebt = latestPool.lDebt;
+    pool.lProposals = latestPool.lProposals;
+    pool.pEnterPrice = latestPool.pEnterPrice;
+    pool.pExitPrice = latestPool.pExitPrice;
+    pool.usersLength = latestPool.usersLength;
+    pool.users = latestPool.users;
+    pool.depositSum = latestPool.depositSum;
+    pool.withdrawSum = latestPool.withdrawSum;
+
+    pool.save();
 }
 
 //POOL FEE EXTRACTED HERE
