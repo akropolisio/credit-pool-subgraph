@@ -87,6 +87,8 @@ type Pool @entity {
   usersLength: BigInt!
   depositSum: BigInt!
   withdrawSum: BigInt!
+  proposalsCount: BigInt!
+  debtsCount: BigInt!
 }
 
 enum Status {

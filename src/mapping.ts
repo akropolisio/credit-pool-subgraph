@@ -40,6 +40,9 @@ import {
     COLLATERAL_TO_DEBT_RATIO_MULTIPLIER
 } from "./utils";
 
+let proposalsCount: i32 = 0;
+let debtsCount: i32 = 0;
+
 // (!) - hight concentration edit only
 export function handleStatus(event: Status): void {
     let latest_pool = get_latest_pool();
@@ -157,6 +160,11 @@ export function handleWithdraw(event: Withdraw): void {
 }
 
 export function handleDebtProposalCreated(event: DebtProposalCreated): void {
+    let pool = get_latest_pool();
+    pool.proposalsCount = pool.proposalsCount.plus(BigInt.fromI32(1));
+    pool.save();
+    addPoolSnapshot(event.block.timestamp, pool);
+
     let debt_id = debtProposalId(
         event.params.sender.toHexString(),
         event.params.proposal.toHex()
@@ -179,6 +187,11 @@ export function handleDebtProposalCreated(event: DebtProposalCreated): void {
 }
 
 export function handleDebtProposalCanceled(event: DebtProposalCanceled): void {
+    let pool = get_latest_pool();
+    pool.proposalsCount = pool.proposalsCount.minus(BigInt.fromI32(1));
+    pool.save();
+    addPoolSnapshot(event.block.timestamp, pool);
+
     let debt_id = debtProposalId(
         event.params.sender.toHexString(),
         event.params.proposal.toHex()
@@ -190,6 +203,12 @@ export function handleDebtProposalCanceled(event: DebtProposalCanceled): void {
 
 
 export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
+    let pool = get_latest_pool();
+    pool.proposalsCount = pool.proposalsCount.minus(BigInt.fromI32(1));
+    pool.debtsCount = pool.debtsCount.plus(BigInt.fromI32(1));
+    pool.save();
+    addPoolSnapshot(event.block.timestamp, pool);
+
     let debt_id = construct_two_part_id(
         event.params.sender.toHex(),
         event.params.proposal.toHex()
@@ -341,9 +360,16 @@ export function handleRepay(event: Repay): void {
     debt.repayed = debt.repayed.plus(repayment);
 
     // change status if repayed
-    let isDebtRepayed = debt.repayed.ge(debt.total);
-    debt.status = isDebtRepayed ? "CLOSED" : "PARTIALLY_REPAYED";
+    let isDebtRepaid = debt.repayed.ge(debt.total);
+    debt.status = isDebtRepaid ? "CLOSED" : "PARTIALLY_REPAYED";
     debt.save();
+
+    if (isDebtRepaid) {
+        let pool = get_latest_pool();
+        pool.debtsCount = pool.debtsCount.minus(BigInt.fromI32(1));
+        pool.save();
+        addPoolSnapshot(event.block.timestamp, pool);
+    }
 
     charge_repay_interest(
         debt,
@@ -400,6 +426,11 @@ export function handleUnlockedPledgeWithdraw(
 }
 
 export function handleDebtDefaultExecuted(event: DebtDefaultExecuted): void {
+    let pool = get_latest_pool();
+    pool.debtsCount = pool.debtsCount.minus(BigInt.fromI32(1));
+    pool.save();
+    addPoolSnapshot(event.block.timestamp, pool);
+
     let loan = LoanModule.bind(event.address);
     let loan_debt = loan.debts(event.params.borrower, event.params.debt);
     let debt_id = construct_two_part_id(
@@ -540,12 +571,15 @@ export function get_latest_pool(): Pool {
         latest_pool.users = [];
         latest_pool.depositSum = BigInt.fromI32(0);
         latest_pool.withdrawSum = BigInt.fromI32(0);
+        latest_pool.proposalsCount = BigInt.fromI32(0);
+        latest_pool.debtsCount = BigInt.fromI32(0);
     }
     return latest_pool as Pool;
 }
 
 function addPoolSnapshot(timestamp: BigInt, latestPool: Pool): void {
     let pool = new Pool(timestamp.toHex());
+
     pool.lBalance = latestPool.lBalance;
     pool.lDebt = latestPool.lDebt;
     pool.lProposals = latestPool.lProposals;
@@ -555,6 +589,8 @@ function addPoolSnapshot(timestamp: BigInt, latestPool: Pool): void {
     pool.users = latestPool.users;
     pool.depositSum = latestPool.depositSum;
     pool.withdrawSum = latestPool.withdrawSum;
+    pool.proposalsCount = latestPool.proposalsCount;
+    pool.debtsCount = latestPool.debtsCount;
 
     pool.save();
 }
@@ -602,10 +638,9 @@ export function calculate_lBalance(
 
 // update unlockLiquidity in pledges and users
 export function update_unlock_liquidities(debt: Debt): void {
-    let nextUnlockLiquidity =
-    debt.status === "CLOSED"
-    ? BigInt.fromI32(0)
-    : debt.total.minus(debt.repayed);
+    let nextUnlockLiquidity = debt.status === "CLOSED"
+        ? BigInt.fromI32(0)
+        : debt.total.minus(debt.repayed);
 
     for (let i = 0; i < debt.pledges.length; i++) {
         let pledges = debt.pledges;
