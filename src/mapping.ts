@@ -30,7 +30,8 @@ import {
     Pool,
     Pledge,
     Earning,
-    BalanceChange
+    BalanceChange,
+    HandlerCash
 } from "../generated/schema";
 import {
     concat,
@@ -39,9 +40,6 @@ import {
     DAY,
     COLLATERAL_TO_DEBT_RATIO_MULTIPLIER
 } from "./utils";
-
-let proposalsCount: i32 = 0;
-let debtsCount: i32 = 0;
 
 // (!) - hight concentration edit only
 export function handleStatus(event: Status): void {
@@ -160,11 +158,6 @@ export function handleWithdraw(event: Withdraw): void {
 }
 
 export function handleDebtProposalCreated(event: DebtProposalCreated): void {
-    let pool = get_latest_pool();
-    pool.proposalsCount = pool.proposalsCount.plus(BigInt.fromI32(1));
-    pool.save();
-    addPoolSnapshot(event.block.timestamp, pool);
-
     let debt_id = debtProposalId(
         event.params.sender.toHexString(),
         event.params.proposal.toHex()
@@ -184,31 +177,32 @@ export function handleDebtProposalCreated(event: DebtProposalCreated): void {
     proposal.pledges = [];
     proposal.status = "PROPOSED";
     proposal.save();
+
+    let pool = get_latest_pool();
+    pool.proposalsCount = pool.proposalsCount.plus(BigInt.fromI32(1));
+    updateMaxProposalInterest(proposal, pool, true);
+    pool.save();
+    addPoolSnapshot(event.block.timestamp, pool);
 }
 
 export function handleDebtProposalCanceled(event: DebtProposalCanceled): void {
-    let pool = get_latest_pool();
-    pool.proposalsCount = pool.proposalsCount.minus(BigInt.fromI32(1));
-    pool.save();
-    addPoolSnapshot(event.block.timestamp, pool);
-
     let debt_id = debtProposalId(
         event.params.sender.toHexString(),
         event.params.proposal.toHex()
     );
-    let debt = Debt.load(debt_id)!;
-    debt.status = "CLOSED";
-    debt.save();
+    let proposal = Debt.load(debt_id)!;
+    proposal.status = "CLOSED";
+    proposal.save();
+
+    let pool = get_latest_pool();
+    pool.proposalsCount = pool.proposalsCount.minus(BigInt.fromI32(1));
+    updateMaxProposalInterest(proposal, pool, false);
+    pool.save();
+    addPoolSnapshot(event.block.timestamp, pool);
 }
 
 
 export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
-    let pool = get_latest_pool();
-    pool.proposalsCount = pool.proposalsCount.minus(BigInt.fromI32(1));
-    pool.debtsCount = pool.debtsCount.plus(BigInt.fromI32(1));
-    pool.save();
-    addPoolSnapshot(event.block.timestamp, pool);
-
     let debt_id = construct_two_part_id(
         event.params.sender.toHex(),
         event.params.proposal.toHex()
@@ -230,6 +224,13 @@ export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
     proposal.save();
 
     update_unlock_liquidities(proposal);
+
+    let pool = get_latest_pool();
+    pool.proposalsCount = pool.proposalsCount.minus(BigInt.fromI32(1));
+    pool.debtsCount = pool.debtsCount.plus(BigInt.fromI32(1));
+    updateMaxProposalInterest(proposal, pool, false);
+    pool.save();
+    addPoolSnapshot(event.block.timestamp, pool);
 }
 
 // (!) - hight concentration edit only
@@ -573,6 +574,7 @@ export function get_latest_pool(): Pool {
         latest_pool.withdrawSum = BigInt.fromI32(0);
         latest_pool.proposalsCount = BigInt.fromI32(0);
         latest_pool.debtsCount = BigInt.fromI32(0);
+        latest_pool.maxProposalInterest = BigInt.fromI32(0);
     }
     return latest_pool as Pool;
 }
@@ -591,6 +593,7 @@ function addPoolSnapshot(timestamp: BigInt, latestPool: Pool): void {
     pool.withdrawSum = latestPool.withdrawSum;
     pool.proposalsCount = latestPool.proposalsCount;
     pool.debtsCount = latestPool.debtsCount;
+    pool.maxProposalInterest = latestPool.maxProposalInterest;
 
     pool.save();
 }
@@ -864,4 +867,64 @@ function createNewUserSnapshot(user: User | null, timestamp: BigInt): void {
     user_snapshot.unlockLiquiditySum = user.unlockLiquiditySum;
     user_snapshot.credit = user.credit;
     user_snapshot.save();
+}
+
+function updateMaxProposalInterest(proposal: Debt, pool: Pool, needToIncrementCounter: boolean): void {
+    let interest = proposal.apr as BigInt;
+    let cash = getHandlerCash();
+
+    let counts = cash.proposalInterestCounts;
+    let interests = cash.proposalInterests;
+
+    log.warning('interest: {};\napr: {};', [
+        interest.toString(),
+        proposal.apr.toString(),
+    ]);
+
+    let aprIndex = -1;
+    for (let i = 0; i < interests.length; i++) {
+        let item = interests[i];
+        if (item.toString() == proposal.apr.toString()) {
+            aprIndex = i;
+            break;
+        }
+    }
+
+    log.warning('aprIndex: {};', [
+        BigInt.fromI32(aprIndex).toString(),
+    ]);
+
+    if (aprIndex < 0) {
+        aprIndex = interests.length;
+        interests.push(interest);
+        counts.push(0);
+    }
+
+    counts[aprIndex] = counts[aprIndex] + (needToIncrementCounter ? 1 : -1);
+
+    let maxInterest = 0;
+    for (let index = 0; index < interests.length; index++) {
+        let cur = interests[index];
+
+        if (counts[index] > 0) {
+            maxInterest = Math.max(maxInterest, cur.toI32()) as i32;
+        }
+    }
+
+    pool.maxProposalInterest = BigInt.fromI32(maxInterest);
+
+    cash.proposalInterests = interests;
+    cash.proposalInterestCounts = counts;
+    cash.save();
+}
+
+function getHandlerCash(): HandlerCash {
+    const id = '1';
+    let cash = HandlerCash.load(id);
+    if (cash == null) {
+        cash = new HandlerCash(id);
+        cash.proposalInterests = [];
+        cash.proposalInterestCounts = [];
+    }
+    return cash as HandlerCash;
 }

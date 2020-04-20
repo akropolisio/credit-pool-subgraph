@@ -89,6 +89,13 @@ type Pool @entity {
   withdrawSum: BigInt!
   proposalsCount: BigInt!
   debtsCount: BigInt!
+  maxProposalInterest: BigInt!
+}
+
+type HandlerCash @entity {
+  id: ID!
+  proposalInterests: [BigInt!]!
+  proposalInterestCounts: [Int!]!
 }
 
 enum Status {
