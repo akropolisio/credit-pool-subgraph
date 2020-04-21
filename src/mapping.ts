@@ -6,7 +6,7 @@ import {
     log
 } from "@graphprotocol/graph-ts";
 import { Status } from "../generated/FundsModule/FundsModule";
-import { Transfer, DistributionsClaimed } from "../generated/PToken/PToken";
+import { Transfer, DistributionsClaimed, DistributionCreated } from "../generated/PToken/PToken";
 import {
     Deposit,
     Withdraw
@@ -31,7 +31,8 @@ import {
     Pledge,
     Earning,
     BalanceChange,
-    HandlerCash
+    HandlerCash,
+    DistributionEvent
 } from "../generated/schema";
 import {
     concat,
@@ -453,6 +454,19 @@ export function handleDebtDefaultExecuted(event: DebtDefaultExecuted): void {
     user.save();
 }
 
+export function handleDistributionCreated(event: DistributionCreated): void {
+    let cash = getHandlerCash();
+    let distribution = getDistributionEvent(cash.nextDistributionEventIndex.toString());
+
+    distribution.amount = event.params.amount;
+    distribution.totalSupply = event.params.totalSupply;
+    distribution.poolState = cash.lastPoolSnapshot;
+    cash.nextDistributionEventIndex = cash.nextDistributionEventIndex.plus(BigInt.fromI32(1));
+
+    distribution.save();
+    cash.save();
+}
+
 export function handleDistributionsClaimed(event: DistributionsClaimed): void {
     let user = get_user(event.params.account.toHexString());
     user.pBalance = user.pBalance.plus(event.params.amount);
@@ -581,6 +595,7 @@ export function get_latest_pool(): Pool {
 
 function addPoolSnapshot(timestamp: BigInt, latestPool: Pool): void {
     let pool = new Pool(timestamp.toHex());
+    let cash = getHandlerCash();
 
     pool.lBalance = latestPool.lBalance;
     pool.lDebt = latestPool.lDebt;
@@ -595,6 +610,9 @@ function addPoolSnapshot(timestamp: BigInt, latestPool: Pool): void {
     pool.debtsCount = latestPool.debtsCount;
     pool.maxProposalInterest = latestPool.maxProposalInterest;
 
+    cash.lastPoolSnapshot = pool.id;
+
+    cash.save();
     pool.save();
 }
 
@@ -918,11 +936,23 @@ function updateMaxProposalInterest(proposal: Debt, pool: Pool, needToIncrementCo
     cash.save();
 }
 
+function getDistributionEvent(id: string): DistributionEvent {
+    let distribution = DistributionEvent.load(id);
+    if (distribution == null) {
+        distribution = new DistributionEvent(id);
+        distribution.amount = BigInt.fromI32(0);
+        distribution.totalSupply = BigInt.fromI32(0);
+    }
+    return distribution as DistributionEvent;
+}
+
 function getHandlerCash(): HandlerCash {
     const id = '1';
     let cash = HandlerCash.load(id);
     if (cash == null) {
         cash = new HandlerCash(id);
+        cash.lastPoolSnapshot = get_latest_pool().id;
+        cash.nextDistributionEventIndex = BigInt.fromI32(0);
         cash.proposalInterests = [];
         cash.proposalInterestCounts = [];
     }

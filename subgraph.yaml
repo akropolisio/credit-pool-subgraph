@@ -111,4 +111,6 @@ dataSources:
           handler: handleTransfer
         - event: DistributionsClaimed(address,uint256,uint256,uint256)
           handler: handleDistributionsClaimed
+        - event: DistributionCreated(uint256,uint256)
+          handler: handleDistributionCreated
       file: ./src/mapping.ts

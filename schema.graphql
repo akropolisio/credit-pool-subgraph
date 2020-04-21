@@ -92,8 +92,17 @@ type Pool @entity {
   maxProposalInterest: BigInt!
 }
 
+type DistributionEvent @entity {
+  id: ID!
+  amount: BigInt!
+  totalSupply: BigInt!
+  poolState: Pool!
+}
+
 type HandlerCash @entity {
   id: ID!
+  lastPoolSnapshot: ID!
+  nextDistributionEventIndex: BigInt!
   proposalInterests: [BigInt!]!
   proposalInterestCounts: [Int!]!
 }
