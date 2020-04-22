@@ -44,6 +44,7 @@ type Earning @entity {
   pAmount: BigInt!
   lAmount: BigInt!
   type: DistributionType!
+  distributionEvent: DistributionEvent
 }
 
 type Debt @entity {
@@ -95,7 +96,9 @@ type Pool @entity {
 type DistributionEvent @entity {
   id: ID!
   amount: BigInt!
+  claimed: BigInt!
   totalSupply: BigInt!
+  date: BigInt!
   poolState: Pool!
 }
 

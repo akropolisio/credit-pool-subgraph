@@ -458,6 +458,7 @@ export function handleDistributionCreated(event: DistributionCreated): void {
     let cash = getHandlerCash();
     let distribution = getDistributionEvent(cash.nextDistributionEventIndex.toString());
 
+    distribution.date = event.block.timestamp;
     distribution.amount = event.params.amount;
     distribution.totalSupply = event.params.totalSupply;
     distribution.poolState = cash.lastPoolSnapshot;
@@ -469,22 +470,37 @@ export function handleDistributionCreated(event: DistributionCreated): void {
 
 export function handleDistributionsClaimed(event: DistributionsClaimed): void {
     let user = get_user(event.params.account.toHexString());
+    let pool = get_latest_pool();
+
+    let balance = user.pBalance;
+
+    for (let i = event.params.fromDistribution.toI32(); i < event.params.toDistribution.toI32(); i++) {
+        let distribution = getDistributionEvent(BigInt.fromI32(i).toString());
+
+        let pAmount = balance.times(distribution.amount).div(distribution.totalSupply);
+        balance = balance.plus(pAmount);
+
+        distribution.claimed = distribution.claimed.plus(pAmount);
+        
+        let earning = init_earning(event.block.timestamp, user, i);
+        earning.pAmount = event.params.amount;
+        earning.lAmount = calculate_lBalanceIncreasing(
+            user.id,
+            pool.lBalance.minus(pool.lProposals),
+            BigInt.fromI32(0),
+            user.pBalance,
+            event.params.amount
+        );
+        earning.type = "POOL_DISTRIBUTIONS";
+        earning.distributionEvent = distribution.id;
+
+        distribution.save();
+        earning.save();
+    }
+
     user.pBalance = user.pBalance.plus(event.params.amount);
     user.lastDistributionIndex = event.params.toDistribution;
     user.save();
-    let pool = get_latest_pool();
-
-    let earning = init_earning(event.block.timestamp, user);
-    earning.pAmount = event.params.amount;
-    earning.lAmount = calculate_lBalanceIncreasing(
-        user.id,
-        pool.lBalance.minus(pool.lProposals),
-        BigInt.fromI32(0),
-        user.pBalance,
-        event.params.amount
-    );
-    earning.type = "POOL_DISTRIBUTIONS";
-    earning.save();
 }
 
 /*            HELPERS           */
@@ -547,8 +563,10 @@ export function init_exit_balance(
     return exit_balance as ExitBalance;
 }
 
-export function init_earning(t: BigInt, sender: User): Earning {
-    let earning = new Earning(construct_two_part_id(t.toHex(), sender.id));
+export function init_earning(t: BigInt, sender: User, distributionEventIndex: i32 = 0): Earning {
+    let earning = new Earning(
+        construct_three_part_id(t.toHex(), sender.id, BigInt.fromI32(distributionEventIndex).toHex()),
+    );
     earning.pAmount = BigInt.fromI32(0);
     earning.lAmount = BigInt.fromI32(0);
     earning.address = sender.id;
@@ -894,11 +912,6 @@ function updateMaxProposalInterest(proposal: Debt, pool: Pool, needToIncrementCo
     let counts = cash.proposalInterestCounts;
     let interests = cash.proposalInterests;
 
-    log.warning('interest: {};\napr: {};', [
-        interest.toString(),
-        proposal.apr.toString(),
-    ]);
-
     let aprIndex = -1;
     for (let i = 0; i < interests.length; i++) {
         let item = interests[i];
@@ -907,10 +920,6 @@ function updateMaxProposalInterest(proposal: Debt, pool: Pool, needToIncrementCo
             break;
         }
     }
-
-    log.warning('aprIndex: {};', [
-        BigInt.fromI32(aprIndex).toString(),
-    ]);
 
     if (aprIndex < 0) {
         aprIndex = interests.length;
@@ -940,7 +949,9 @@ function getDistributionEvent(id: string): DistributionEvent {
     let distribution = DistributionEvent.load(id);
     if (distribution == null) {
         distribution = new DistributionEvent(id);
+        distribution.date = BigInt.fromI32(0);
         distribution.amount = BigInt.fromI32(0);
+        distribution.claimed = BigInt.fromI32(0);
         distribution.totalSupply = BigInt.fromI32(0);
     }
     return distribution as DistributionEvent;
