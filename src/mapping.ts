@@ -1,8 +1,6 @@
 import {
     BigInt,
-    ByteArray,
     Address,
-    crypto,
     log
 } from "@graphprotocol/graph-ts";
 import { Status } from "../generated/FundsModule/FundsModule";
@@ -35,11 +33,15 @@ import {
     DistributionEvent
 } from "../generated/schema";
 import {
-    concat,
-    latest_date,
-    calculateExitInverseWithFee,
+    COLLATERAL_TO_DEBT_RATIO_MULTIPLIER,
     DAY,
-    COLLATERAL_TO_DEBT_RATIO_MULTIPLIER
+    calculateExitInverseWithFee,
+    getDebtProposalId,
+    latest_date,
+    constructTwoPartId,
+    getPledgeIdFromRaw,
+    constructThreePartId,
+    getPledgeId,
 } from "./utils";
 
 // (!) - hight concentration edit only
@@ -159,7 +161,7 @@ export function handleWithdraw(event: Withdraw): void {
 }
 
 export function handleDebtProposalCreated(event: DebtProposalCreated): void {
-    let debt_id = debtProposalId(
+    let debt_id = getDebtProposalId(
         event.params.sender.toHexString(),
         event.params.proposal.toHex()
     );
@@ -187,7 +189,7 @@ export function handleDebtProposalCreated(event: DebtProposalCreated): void {
 }
 
 export function handleDebtProposalCanceled(event: DebtProposalCanceled): void {
-    let debt_id = debtProposalId(
+    let debt_id = getDebtProposalId(
         event.params.sender.toHexString(),
         event.params.proposal.toHex()
     );
@@ -204,7 +206,7 @@ export function handleDebtProposalCanceled(event: DebtProposalCanceled): void {
 
 
 export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
-    let debt_id = construct_two_part_id(
+    let debt_id = constructTwoPartId(
         event.params.sender.toHex(),
         event.params.proposal.toHex()
     );
@@ -237,7 +239,7 @@ export function handleDebtProposalExecuted(event: DebtProposalExecuted): void {
 // (!) - hight concentration edit only
 export function handlePledgeAdded(event: PledgeAdded): void {
     let proposal_id = event.params.proposal.toHex();
-    let debt_id = debtProposalId(
+    let debt_id = getDebtProposalId(
         event.params.borrower.toHexString(),
         proposal_id
     );
@@ -246,7 +248,7 @@ export function handlePledgeAdded(event: PledgeAdded): void {
         log.warning("DebtProposal not found, proposalId: {}. qed", [proposal_id]);
         return;
     }
-    let pledge_hash = pledgeIdFromRaw(
+    let pledge_hash = getPledgeIdFromRaw(
         event.params.sender,
         event.params.borrower,
         event.params.proposal
@@ -295,12 +297,12 @@ export function handlePledgeAdded(event: PledgeAdded): void {
 
 // (!) - hight concentration edit only
 export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
-    let debt_id = construct_two_part_id(
+    let debt_id = constructTwoPartId(
         event.params.borrower.toHex(),
         event.params.proposal.toHex()
     );
     let proposal = Debt.load(debt_id) as Debt;
-    let pledge_hash = pledgeIdFromRaw(
+    let pledge_hash = getPledgeIdFromRaw(
         event.params.sender,
         event.params.borrower,
         event.params.proposal
@@ -348,7 +350,7 @@ export function handleRepay(event: Repay): void {
     // Not `loan_debt.proposal` because of graph-cli codegen bug.
     // However, as long as Debt struct on LoanModule has proposal
     // field at the first place, it`ll work
-    let debt_id = construct_two_part_id(
+    let debt_id = constructTwoPartId(
         event.params.sender.toHex(),
         loan_debt.value0.toHex()
     );
@@ -392,7 +394,7 @@ export function handleRepay(event: Repay): void {
 export function handleUnlockedPledgeWithdraw(
     event: UnlockedPledgeWithdraw
 ): void {
-    let pledge_hash = pledgeIdFromRaw(
+    let pledge_hash = getPledgeIdFromRaw(
         event.params.sender,
         event.params.borrower,
         event.params.proposal
@@ -435,7 +437,7 @@ export function handleDebtDefaultExecuted(event: DebtDefaultExecuted): void {
 
     let loan = LoanModule.bind(event.address);
     let loan_debt = loan.debts(event.params.borrower, event.params.debt);
-    let debt_id = construct_two_part_id(
+    let debt_id = constructTwoPartId(
         event.params.borrower.toHex(),
         loan_debt.value0.toHex()
     );
@@ -539,7 +541,7 @@ export function init_exit_balance(
     pool: Pool
 ): ExitBalance {
     let exit_balance = new ExitBalance(
-        construct_two_part_id(timestamp.toHex(), user.id)
+        constructTwoPartId(timestamp.toHex(), user.id)
     );
 
     exit_balance.user = user.id;
@@ -565,7 +567,7 @@ export function init_exit_balance(
 
 export function init_earning(t: BigInt, sender: User, distributionEventIndex: i32 = 0): Earning {
     let earning = new Earning(
-        construct_three_part_id(t.toHex(), sender.id, BigInt.fromI32(distributionEventIndex).toHex()),
+        constructThreePartId(t.toHex(), sender.id, BigInt.fromI32(distributionEventIndex).toHex()),
     );
     earning.pAmount = BigInt.fromI32(0);
     earning.lAmount = BigInt.fromI32(0);
@@ -581,7 +583,7 @@ export function init_balance_change(
     type: string
 ): BalanceChange {
     let balance_change = new BalanceChange(
-        construct_two_part_id(t.toHex(), sender.id)
+        constructTwoPartId(t.toHex(), sender.id)
     );
     balance_change.amount = lAmount;
     balance_change.address = sender.id;
@@ -729,7 +731,7 @@ export function default_pledge_interests(
     pBurned: BigInt,
     timestamp: BigInt
 ): void {
-    let borrower_pledge_hash = pledgeId(
+    let borrower_pledge_hash = getPledgeId(
         debt.borrower,
         debt.borrower,
         debt.proposal_id
@@ -798,26 +800,6 @@ export function calculate_progress(proposal: Debt): string {
     return progress.toHex();
 }
 
-function construct_three_part_id(a: string, b: string, c: string): string {
-    return crypto
-        .keccak256(
-            ByteArray.fromHexString(
-                normalizeLength(a)
-                .concat(normalizeLength(b))
-                .concat(normalizeLength(c))
-            )
-        )
-        .toHexString();
-}
-
-export function construct_two_part_id(s: string, p: string): string {
-    p = normalizeLength(p);
-    s = normalizeLength(s);
-    return crypto
-        .keccak256(concat(ByteArray.fromHexString(s), ByteArray.fromHexString(p)))
-        .toHexString();
-}
-
 // AssemblyScript types workarounds
 export function contains_pledger(pledgers: Array<string>, s: string): boolean {
     let contains = false;
@@ -854,45 +836,13 @@ export function filter_pledgers(p: Array<string>, s: string): Array<string> {
     return new_array;
 }
 
-function normalizeLength(str: string): string {
-    let s = str.slice(2);
-    if (s.length % 2 == 1) {
-        return "0".concat(s);
-    }
-    return s;
-}
-
-function debtProposalId(address: string, proposalId: string): string {
-    return construct_two_part_id(address, proposalId);
-}
-
-function pledgeIdFromRaw(
-    supporter: Address,
-    borrower: Address,
-    proposalId: BigInt
-): string {
-    return pledgeId(
-        supporter.toHexString(),
-        borrower.toHexString(),
-        proposalId.toHex()
-    );
-}
-
-function pledgeId(
-    supporter: string,
-    borrower: string,
-    proposalId: string
-): string {
-    return construct_three_part_id(supporter, borrower, proposalId);
-}
-
 function createNewUserSnapshot(user: User | null, timestamp: BigInt): void {
     if (user == null) {
         log.warning("User is null. qed", []);
         return;
     }
     let user_snapshot = new UserSnapshot(
-        construct_two_part_id(timestamp.toHex(), user.id)
+        constructTwoPartId(timestamp.toHex(), user.id)
     );
     user_snapshot.date = timestamp;
     user_snapshot.user = user.id;
