@@ -1,8 +1,4 @@
-import {
-    BigInt,
-    Address,
-    log
-} from "@graphprotocol/graph-ts";
+import { BigInt, Address, log } from "@graphprotocol/graph-ts";
 import { Status } from "../generated/FundsModule/FundsModule";
 import { Transfer, DistributionsClaimed, DistributionCreated } from "../generated/PToken/PToken";
 import {
