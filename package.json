@@ -5,7 +5,7 @@
     "codegen": "graph codegen",
     "build": "graph build",
     "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-sandbox",
-    "deploy-stable": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-beta",
+    "deploy-stable": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-beta subgraph-beta.yaml",
     "deploy-canary": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-canary",
     "deploy-akro": "graph deploy --node https://graph-node.akropolis.io --ipfs https://graph-node.akropolis.io/ipfs akropolisio/akropolis-os2",
     "create-akro": "graph create --node https://graph-node.akropolis.io akropolisio/akropolis-os",
