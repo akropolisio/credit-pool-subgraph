@@ -2,16 +2,19 @@
   "name": "akropolis-os",
   "license": "UNLICENSED",
   "scripts": {
-    "codegen": "graph codegen",
+    "codegen:sandbox": "graph codegen",
+    "codegen:beta": "graph codegen subgraph-beta.yaml",
+    "codegen:beta-defi": "graph codegen subgraph-beta-defi.yaml",
     "build": "graph build",
-    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-sandbox",
-    "deploy-stable": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-beta subgraph-beta.yaml",
-    "deploy-canary": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-canary",
-    "deploy-akro": "graph deploy --node https://graph-node.akropolis.io --ipfs https://graph-node.akropolis.io/ipfs akropolisio/akropolis-os2",
-    "create-akro": "graph create --node https://graph-node.akropolis.io akropolisio/akropolis-os",
-    "remove-local": "graph remove --node http://localhost:8020/ akropolisio/akropolis-os",
-    "create-local": "graph create --node http://localhost:8020/ akropolisio/akropolis-os",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 akropolisio/akropolis-os"
+    "deploy:sandbox": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-sandbox",
+    "deploy:beta": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-beta subgraph-beta.yaml",
+    "deploy:beta-defi": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-beta-defi subgraph-beta-defi.yaml",
+    "deploy:canary": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-canary",
+    "deploy:akro": "graph deploy --node https://graph-node.akropolis.io --ipfs https://graph-node.akropolis.io/ipfs akropolisio/akropolis-os2",
+    "create:akro": "graph create --node https://graph-node.akropolis.io akropolisio/akropolis-os",
+    "remove:local": "graph remove --node http://localhost:8020/ akropolisio/akropolis-os",
+    "create:local": "graph create --node http://localhost:8020/ akropolisio/akropolis-os",
+    "deploy:local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 akropolisio/akropolis-os"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.17.1",
