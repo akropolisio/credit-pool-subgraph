@@ -13,15 +13,17 @@ import {
 } from "../generated/LiquidityModule/LiquidityModule";
 import {
     LoanModule,
+    Repay,
+    UnlockedPledgeWithdraw,
+    DebtDefaultExecuted
+} from "../generated/LoanModule/LoanModule";
+import {
     PledgeAdded,
     DebtProposalCreated,
     DebtProposalCanceled,
     PledgeWithdrawn,
     DebtProposalExecuted,
-    Repay,
-    UnlockedPledgeWithdraw,
-    DebtDefaultExecuted
-} from "../generated/LoanModule/LoanModule";
+} from "../generated/LoanProposalsModule/LoanProposalsModule";
 import {
     User,
     UserSnapshot,
