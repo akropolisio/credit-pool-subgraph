@@ -58,16 +58,40 @@ dataSources:
       apiVersion: 0.0.3
       language: wasm/assemblyscript
       entities:
-        - DebtProposalCreated
-        - PledgeAdded
-        - PledgeWithdrawn
-        - DebtProposalExecuted
         - Repay
         - UnlockedPledgeWithdraw
         - DebtDefaultExecuted
       abis:
         - name: LoanModule
           file: ./abis/LoanModule.json
+      eventHandlers:
+        - event: Repay(indexed address,uint256,uint256,uint256,uint256,uint256,uint256)
+          handler: handleRepay
+        - event: UnlockedPledgeWithdraw(indexed address,indexed address,uint256,uint256,uint256)
+          handler: handleUnlockedPledgeWithdraw
+        - event: DebtDefaultExecuted(indexed address,uint256,uint256)
+          handler: handleDebtDefaultExecuted
+      file: ./src/mapping.ts
+  - kind: ethereum/contract
+    name: LoanProposalsModule
+    network: rinkeby
+    source:
+      address: "0x26c4F1A353d2463b30280686b65fE29ca33eD003"
+      abi: LoanProposalsModule
+      startBlock: 6380000
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.3
+      language: wasm/assemblyscript
+      entities:
+        - DebtProposalCanceled
+        - DebtProposalCreated
+        - PledgeAdded
+        - PledgeWithdrawn
+        - DebtProposalExecuted
+      abis:
+        - name: LoanProposalsModule
+          file: ./abis/LoanProposalsModule.json
       eventHandlers:
         - event: DebtProposalCanceled(indexed address,uint256)
           handler: handleDebtProposalCanceled
@@ -79,12 +103,6 @@ dataSources:
           handler: handlePledgeWithdrawn
         - event: DebtProposalExecuted(indexed address,uint256,uint256,uint256)
           handler: handleDebtProposalExecuted
-        - event: Repay(indexed address,uint256,uint256,uint256,uint256,uint256,uint256)
-          handler: handleRepay
-        - event: UnlockedPledgeWithdraw(indexed address,indexed address,uint256,uint256,uint256)
-          handler: handleUnlockedPledgeWithdraw
-        - event: DebtDefaultExecuted(indexed address,uint256,uint256)
-          handler: handleDebtDefaultExecuted
       file: ./src/mapping.ts
   - kind: ethereum/contract
     name: PToken
