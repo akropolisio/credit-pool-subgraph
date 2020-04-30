@@ -1,17 +1,41 @@
 name: CI
 
-on: pull_request
+on:
+  pull_request:
+    branches:
+    - sandbox
+    - beta
+    - beta-defi
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
     - name: Install yarn dependencies
       run: yarn
+
     - name: Codegen
-      run: yarn codegen
+      run: yarn codegen:sandbox
+      if: github.ref == 'refs/heads/sandbox'
+
+    - name: Codegen
+      run: yarn codegen:beta
+      if: github.ref == 'refs/heads/beta'
+
+    - name: Codegen
+      run: yarn codegen:beta-defi
+      if: github.ref == 'refs/heads/beta-defi'
+
     - name: Build wasm
-      run: yarn build
+      run: yarn build:sandbox
+      if: github.ref == 'refs/heads/sandbox'
+
+    - name: Build wasm
+      run: yarn build:beta
+      if: github.ref == 'refs/heads/beta'
+
+    - name: Build wasm
+      run: yarn build:beta-defi
+      if: github.ref == 'refs/heads/beta-defi'
