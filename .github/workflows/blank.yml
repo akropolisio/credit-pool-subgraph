@@ -18,24 +18,24 @@ jobs:
 
     - name: Codegen
       run: yarn codegen:sandbox
-      if: github.ref == 'refs/heads/sandbox'
+      if: github.head_ref == 'sandbox'
 
     - name: Codegen
       run: yarn codegen:beta
-      if: github.ref == 'refs/heads/beta'
+      if: github.head_ref == 'beta'
 
     - name: Codegen
       run: yarn codegen:beta-defi
-      if: github.ref == 'refs/heads/beta-defi'
+      if: github.head_ref == 'beta-defi'
 
     - name: Build wasm
       run: yarn build:sandbox
-      if: github.ref == 'refs/heads/sandbox'
+      if: github.head_ref == 'sandbox'
 
     - name: Build wasm
       run: yarn build:beta
-      if: github.ref == 'refs/heads/beta'
+      if: github.head_ref == 'beta'
 
     - name: Build wasm
       run: yarn build:beta-defi
-      if: github.ref == 'refs/heads/beta-defi'
+      if: github.head_ref == 'beta-defi'
