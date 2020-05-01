@@ -12,6 +12,7 @@ import {
     DebtDefaultExecuted
 } from "../generated/LoanModule/LoanModule";
 import {
+    LoanProposalsModule,
     PledgeAdded,
     DebtProposalCreated,
     DebtProposalCanceled,
@@ -31,7 +32,7 @@ import {
     DistributionEvent
 } from "../generated/schema";
 import {
-    COLLATERAL_TO_DEBT_RATIO_MULTIPLIER,
+    PERCENT_MULTIPLIER,
     DAY,
     calculateExitInverseWithFee,
     getDebtProposalId,
@@ -289,7 +290,7 @@ export function handlePledgeAdded(event: PledgeAdded): void {
 
     proposal.lStaked = proposal.lStaked.plus(event.params.lAmount);
     proposal.pStaked = proposal.pStaked.plus(event.params.pAmount);
-    proposal.stakeProgress = calculate_progress(proposal);
+    proposal.stakeProgress = calculate_progress(proposal, event.address);
     proposal.save();
 }
 
@@ -327,7 +328,7 @@ export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
 
     proposal.lStaked = proposal.lStaked.minus(event.params.lAmount);
     proposal.pStaked = proposal.pStaked.minus(event.params.pAmount);
-    proposal.stakeProgress = calculate_progress(proposal);
+    proposal.stakeProgress = calculate_progress(proposal, event.address);
 
     // remove pledge and pledger from this debt if there is no stake left
     if (pledge.pLocked.le(BigInt.fromI32(0))) {
@@ -791,10 +792,18 @@ export function lProportional(pAmount: BigInt, user: User): BigInt {
     return user.lBalance.times(pAmount).div(user.pBalance);
 }
 
-export function calculate_progress(proposal: Debt): string {
+export function calculate_progress(proposal: Debt, loanProposalsModuleAddress: Address): string {
+    let loanProposalsModule = LoanProposalsModule.bind(loanProposalsModuleAddress);
+
+    let COLLATERAL_TO_DEBT_RATIO_MULTIPLIER = loanProposalsModule.COLLATERAL_TO_DEBT_RATIO_MULTIPLIER();
+    let COLLATERAL_TO_DEBT_RATIO = loanProposalsModule.COLLATERAL_TO_DEBT_RATIO();
+
     let progress = proposal.lStaked
-        .times(COLLATERAL_TO_DEBT_RATIO_MULTIPLIER)
-        .div(proposal.total);
+        .times(PERCENT_MULTIPLIER)
+        .div(proposal.total
+            .times(COLLATERAL_TO_DEBT_RATIO)
+            .div(COLLATERAL_TO_DEBT_RATIO_MULTIPLIER)
+        );
     return progress.toHex();
 }
 
