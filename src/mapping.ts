@@ -28,7 +28,6 @@ import {
     Pledge,
     Earning,
     BalanceChange,
-    HandlerCash,
     DistributionEvent
 } from "../generated/schema";
 import {
@@ -42,6 +41,7 @@ import {
     constructThreePartId,
     getPledgeId,
 } from "./utils";
+import { getHandlerCash } from "./getHandlerCash";
 
 // (!) - hight concentration edit only
 export function handleStatus(event: Status): void {
@@ -912,17 +912,4 @@ function getDistributionEvent(id: string): DistributionEvent {
         distribution.totalSupply = BigInt.fromI32(0);
     }
     return distribution as DistributionEvent;
-}
-
-function getHandlerCash(): HandlerCash {
-    const id = '1';
-    let cash = HandlerCash.load(id);
-    if (cash == null) {
-        cash = new HandlerCash(id);
-        cash.lastPoolSnapshot = get_latest_pool().id;
-        cash.nextDistributionEventIndex = BigInt.fromI32(0);
-        cash.proposalInterests = [];
-        cash.proposalInterestCounts = [];
-    }
-    return cash as HandlerCash;
 }

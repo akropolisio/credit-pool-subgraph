@@ -108,6 +108,18 @@ type HandlerCash @entity {
   nextDistributionEventIndex: BigInt!
   proposalInterests: [BigInt!]!
   proposalInterestCounts: [Int!]!
+  lastDefiAPR: ID
+}
+
+type DefiAPR @entity {
+  id: ID!
+  dateFrom: BigInt!
+  dateTo: BigInt!
+  amountFrom: BigInt!
+  amountTo: BigInt!
+  duration: BigInt!
+  apr: BigInt!
+  aprDecimals: Int!
 }
 
 enum Status {
