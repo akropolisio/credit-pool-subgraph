@@ -2,24 +2,29 @@
   "name": "akropolis-os",
   "license": "UNLICENSED",
   "scripts": {
-    "codegen:sandbox": "graph codegen subgraph-sandbox.yaml",
-    "codegen:beta": "graph codegen subgraph-beta.yaml",
-    "codegen:beta-defi": "graph codegen subgraph-beta-defi.yaml",
-    "build:sandbox": "graph build subgraph-sandbox.yaml",
-    "build:beta": "graph build subgraph-beta.yaml",
-    "build:beta-defi": "graph build subgraph-beta-defi.yaml",
-    "deploy:sandbox": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-sandbox subgraph-sandbox.yaml",
-    "deploy:beta": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-beta subgraph-beta.yaml",
-    "deploy:beta-defi": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-beta-defi subgraph-beta-defi.yaml",
-    "deploy:canary": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-canary",
+    "build:sandbox": "TYPE=sandbox yarn build",
+    "build:beta": "TYPE=beta yarn build",
+    "build:beta-defi": "TYPE=beta-defi yarn build",
+    "build": "yarn prepare && graph build",
+    "deploy:sandbox": "TYPE=sandbox yarn deploy-thegraph alekspickle/akropolis-os-sandbox",
+    "deploy:beta": "TYPE=beta yarn deploy-thegraph alekspickle/akropolis-os-beta",
+    "deploy:beta-defi": "TYPE=beta-defi yarn deploy-thegraph alekspickle/akropolis-os-beta-defi",
+    "deploy:canary": "yarn deploy-thegraph alekspickle/akropolis-os-canary",
+    "deploy-thegraph": "yarn prepare && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/",
     "deploy:akro": "graph deploy --node https://graph-node.akropolis.io --ipfs https://graph-node.akropolis.io/ipfs akropolisio/akropolis-os2",
     "create:akro": "graph create --node https://graph-node.akropolis.io akropolisio/akropolis-os",
     "remove:local": "graph remove --node http://localhost:8020/ akropolisio/akropolis-os",
     "create:local": "graph create --node http://localhost:8020/ akropolisio/akropolis-os",
-    "deploy:local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 akropolisio/akropolis-os"
+    "deploy:local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 akropolisio/akropolis-os",
+    "prepare": "yarn prepare-manifest && yarn codegen",
+    "prepare-manifest": "mustache ./config/${TYPE:-sandbox}.json subgraph.template.yaml > subgraph.yaml",
+    "codegen": "graph codegen"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.17.1",
     "@graphprotocol/graph-ts": "0.17.0"
+  },
+  "devDependencies": {
+    "mustache": "^4.0.1"
   }
 }

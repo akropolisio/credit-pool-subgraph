@@ -16,18 +16,6 @@ jobs:
     - name: Install yarn dependencies
       run: yarn
 
-    - name: Codegen
-      run: yarn codegen:sandbox
-      if: github.head_ref == 'sandbox'
-
-    - name: Codegen
-      run: yarn codegen:beta
-      if: github.head_ref == 'beta'
-
-    - name: Codegen
-      run: yarn codegen:beta-defi
-      if: github.head_ref == 'beta-defi'
-
     - name: Build wasm
       run: yarn build:sandbox
       if: github.head_ref == 'sandbox'
