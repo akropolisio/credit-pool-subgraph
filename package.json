@@ -4,8 +4,10 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
+    "prepare": "yarn prepare-manifest && yarn codegen",
+    "prepare-manifest": "mustache ./config/${TYPE:-sandbox}.json subgraph.template.yaml > subgraph.yaml",
     "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-sandbox",
-    "deploy-stable": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-beta subgraph-beta.yaml",
+    "deploy-stable": "TYPE=beta yarn prepare && graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-beta",
     "deploy-canary": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ alekspickle/akropolis-os-canary",
     "deploy-akro": "graph deploy --node https://graph-node.akropolis.io --ipfs https://graph-node.akropolis.io/ipfs akropolisio/akropolis-os2",
     "create-akro": "graph create --node https://graph-node.akropolis.io akropolisio/akropolis-os",
@@ -16,5 +18,8 @@
   "dependencies": {
     "@graphprotocol/graph-cli": "0.17.1",
     "@graphprotocol/graph-ts": "0.17.0"
+  },
+  "devDependencies": {
+    "mustache": "^4.0.1"
   }
 }
