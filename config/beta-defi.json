@@ -1,0 +1,10 @@
+{
+  "startBlock": 6400000,
+  "modules": {
+    "funds": "0x91fcbbD3fE3DFCEa1E96fBa2936a06291a4e3953",
+    "liquidity": "0xA8155d44CaDee6b765E6054bbd39b5A3EBD0BC39",
+    "loan": "0x8C599627713C6E6A56fB875994aF0ba2E115C74B",
+    "loanProposals": "0x26c4F1A353d2463b30280686b65fE29ca33eD003",
+    "pToken": "0x5b6214852c5e4E20EF4079bF73e98584FdB65228"
+  }
+}

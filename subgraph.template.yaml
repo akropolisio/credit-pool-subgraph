@@ -6,9 +6,9 @@ dataSources:
     name: FundsModule
     network: rinkeby
     source:
-      address: "0x91fcbbD3fE3DFCEa1E96fBa2936a06291a4e3953"
+      address: "{{modules.funds}}"
       abi: FundsModule
-      startBlock: 6380000
+      startBlock: {{startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -26,9 +26,9 @@ dataSources:
     name: LiquidityModule
     network: rinkeby
     source:
-      address: "0xA8155d44CaDee6b765E6054bbd39b5A3EBD0BC39"
+      address: "{{modules.liquidity}}"
       abi: LiquidityModule
-      startBlock: 6380000
+      startBlock: {{startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -50,9 +50,9 @@ dataSources:
     name: LoanModule
     network: rinkeby
     source:
-      address: "0x8C599627713C6E6A56fB875994aF0ba2E115C74B"
+      address: "{{modules.loan}}"
       abi: LoanModule
-      startBlock: 6380000
+      startBlock: {{startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -76,9 +76,9 @@ dataSources:
     name: LoanProposalsModule
     network: rinkeby
     source:
-      address: "0x26c4F1A353d2463b30280686b65fE29ca33eD003"
+      address: "{{modules.loanProposals}}"
       abi: LoanProposalsModule
-      startBlock: 6380000
+      startBlock: {{startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -108,9 +108,9 @@ dataSources:
     name: PToken
     network: rinkeby
     source:
-      address: "0x5b6214852c5e4E20EF4079bF73e98584FdB65228"
+      address: "{{modules.pToken}}"
       abi: PToken
-      startBlock: 6380000
+      startBlock: {{startBlock}}
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
