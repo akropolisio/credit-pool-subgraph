@@ -84,7 +84,7 @@ type Pool @entity {
   lProposals: BigInt!
   pEnterPrice: BigInt!
   pExitPrice: BigInt!
-  users: [String]!
+  users: [String!]!
   usersLength: BigInt!
   depositSum: BigInt!
   withdrawSum: BigInt!
@@ -120,6 +120,12 @@ type DefiAPR @entity {
   duration: BigInt!
   apr: BigInt!
   aprDecimals: Int!
+}
+
+type PoolModule @entity {
+  "module address"
+  id: ID!
+  name: String!
 }
 
 enum Status {

@@ -16,6 +16,9 @@
     "remove:local": "graph remove --node http://localhost:8020/ akropolisio/akropolis-os",
     "create:local": "graph create --node http://localhost:8020/ akropolisio/akropolis-os",
     "deploy:local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 akropolisio/akropolis-os",
+    "prepare:sandbox": "TYPE=sandbox yarn prepare",
+    "prepare:beta": "TYPE=beta yarn prepare",
+    "prepare:beta-defi": "TYPE=beta-defi yarn prepare",
     "prepare": "yarn prepare-manifest && yarn codegen",
     "prepare-manifest": "mustache ./config/${TYPE:-sandbox}.json subgraph.template.yaml > subgraph.yaml",
     "codegen": "graph codegen"

@@ -1,5 +1,6 @@
 import { BigInt } from "@graphprotocol/graph-ts";
 
+export let ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 export let FIX = BigInt.fromI32(10).pow(18);
 export let FIX2 = BigInt.fromI32(10).pow(36);
 export let WITHDRAW_FEE = BigInt.fromI32(0);

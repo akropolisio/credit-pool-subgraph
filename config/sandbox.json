@@ -1,6 +1,7 @@
 {
-  "startBlock": 6400000,
+  "startBlock": 6388000,
   "modules": {
+    "pool": "0x53DB2A5c8304aEE4cD31A9a10d09022e775F2EAd",
     "funds": "0x91fcbbD3fE3DFCEa1E96fBa2936a06291a4e3953",
     "liquidity": "0xA8155d44CaDee6b765E6054bbd39b5A3EBD0BC39",
     "loan": "0x8C599627713C6E6A56fB875994aF0ba2E115C74B",

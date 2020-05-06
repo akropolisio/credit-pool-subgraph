@@ -6,3 +6,4 @@ export * from "./curveFunction";
 export * from "./inverseCurveFunction";
 export * from "./sqrtBabylonian";
 export * from "./decimalsToWei";
+export * from "./isPoolModuleExist";

@@ -3,6 +3,30 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum/contract
+    name: PoolContract
+    network: rinkeby
+    source:
+      address: "{{modules.pool}}"
+      abi: PoolContract
+      startBlock: {{startBlock}}
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.3
+      language: wasm/assemblyscript
+      entities:
+        - PoolModule
+      abis:
+        - name: PoolContract
+          file: ./abis/PoolContract.json
+      eventHandlers:
+        - event: ModuleAdded(string,indexed address)
+          handler: handleAdded
+        - event: ModuleRemoved(string,indexed address)
+          handler: handleRemoved
+        - event: ModuleReplaced(string,indexed address,indexed address)
+          handler: handleReplaced
+      file: ./src/mappings/pool.ts
+  - kind: ethereum/contract
     name: FundsModule
     network: rinkeby
     source:
@@ -159,4 +183,4 @@ dataSources:
           handler: handleWithdrawInterest
       blockHandlers:
         - handler: handleBlock
-      file: ./src/mappingDefi.ts
+      file: ./src/mappings/defi.ts

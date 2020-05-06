@@ -40,6 +40,8 @@ import {
     getPledgeIdFromRaw,
     constructThreePartId,
     getPledgeId,
+    ZERO_ADDRESS,
+    isPoolModuleExist,
 } from "./utils";
 import { getHandlerCash } from "./getHandlerCash";
 
@@ -81,19 +83,10 @@ export function handleStatus(event: Status): void {
 }
 
 export function handleTransfer(event: Transfer): void {
-    let from = get_user(event.params.from.toHexString());
     let to = get_user(event.params.to.toHexString());
     let pool = get_latest_pool();
 
-    // update pool users if necessary
-    if (!pool.users.includes(from.id)) {
-        pool.usersLength = pool.usersLength.plus(BigInt.fromI32(1));
-        let new_users = pool.users;
-        new_users.push(from.id);
-        pool.users = new_users;
-        from.save();
-    }
-    if (!pool.users.includes(to.id)) {
+    if (to.id != ZERO_ADDRESS && !isPoolModuleExist(to.id) && !pool.users.includes(to.id)) {
         pool.usersLength = pool.usersLength.plus(BigInt.fromI32(1));
         let new_users = pool.users;
         new_users.push(to.id);
@@ -106,19 +99,13 @@ export function handleTransfer(event: Transfer): void {
 }
 
 export function handleDeposit(event: Deposit): void {
-    let user = get_user(event.params.sender.toHexString());
     let pool = get_latest_pool();
-    if (!pool.users.includes(user.id)) {
-        pool.usersLength = pool.usersLength.plus(BigInt.fromI32(1));
-        let new_users = pool.users;
-        new_users.push(user.id);
-        pool.users = new_users;
-    }
     pool.depositSum = pool.depositSum.plus(event.params.lAmount);
     pool.save();
     addPoolSnapshot(event.block.timestamp, pool);
 
     // update user balance
+    let user = get_user(event.params.sender.toHexString());
     user.pBalance = user.pBalance.plus(event.params.pAmount);
     user.lBalance = user.lBalance.plus(event.params.lAmount);
     user.save();

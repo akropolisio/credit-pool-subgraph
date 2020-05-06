@@ -6,15 +6,15 @@ import {
   dataSource,
 } from "@graphprotocol/graph-ts";
 
-import { DefiAPR } from "../generated/schema";
+import { DefiAPR } from "../../generated/schema";
 import {
   Withdraw,
   Deposit,
   WithdrawInterest,
   DeFiModule,
-} from "../generated/DeFiModule/DeFiModule";
-import { getHandlerCash } from "./getHandlerCash";
-import { PERCENT_MULTIPLIER, decimalsToWei } from "./utils";
+} from "../../generated/DeFiModule/DeFiModule";
+import { getHandlerCash } from "../getHandlerCash";
+import { PERCENT_MULTIPLIER, decimalsToWei, isPoolModuleExist } from "../utils";
 
 export function handleWithdraw(event: Withdraw): void {
   handleDefiAPREvent(event, event.params.amount);
@@ -39,10 +39,15 @@ function handleDefiAPREvent<T>(
   event: T,
   amountCorrection: BigInt = BigInt.fromI32(0)
 ): void {
+  let defiModuleAddress = dataSource.address();
+  if (!isPoolModuleExist(defiModuleAddress.toHexString())) {
+    return;
+  }
+
   let cash = getHandlerCash();
   let lastAPR: DefiAPR | null =
     cash.lastDefiAPR == null ? null : getDefiAPR(cash.lastDefiAPR);
-  let defiModule = DeFiModule.bind(dataSource.address());
+  let defiModule = DeFiModule.bind(defiModuleAddress);
 
   let id: string;
   let timestamp: BigInt;
