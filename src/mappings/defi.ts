@@ -70,7 +70,14 @@ function handleDefiAPREvent<T>(
   newAPR.duration = newAPR.dateTo.minus(newAPR.dateFrom);
 
   newAPR.amountFrom = lastAPR == null ? BigInt.fromI32(0) : lastAPR.amountTo;
-  newAPR.amountTo = defiModule.poolBalance();
+
+  let poolBalance = defiModule.try_poolBalance();
+  if (poolBalance.reverted) {
+    log.warning("poolBalance getting is reverted", []);
+  }
+  newAPR.amountTo = poolBalance.reverted
+    ? newAPR.amountFrom.minus(amountCorrection)
+    : poolBalance.value;
 
   let calcAprResult = calcApr(
     newAPR.duration,

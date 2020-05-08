@@ -507,7 +507,6 @@ export function get_user(address: string): User {
         user.unlockLiquiditySum = BigInt.fromI32(0);
         user.pInterestSum = BigInt.fromI32(0);
         user.credit = BigInt.fromI32(0);
-        user.pledges = [];
     }
     return user as User;
 }
