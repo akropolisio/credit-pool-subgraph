@@ -13,8 +13,8 @@ import {
   WithdrawInterest,
   DeFiModule,
 } from "../../generated/DeFiModule/DeFiModule";
-import { getHandlerCash } from "../getHandlerCash";
 import { PERCENT_MULTIPLIER, decimalsToWei, isPoolModuleExist } from "../utils";
+import { getDefiHandlerCash } from "../utils/entities";
 
 export function handleWithdraw(event: Withdraw): void {
   handleDefiAPREvent(event, event.params.amount);
@@ -44,7 +44,7 @@ function handleDefiAPREvent<T>(
     return;
   }
 
-  let cash = getHandlerCash();
+  let cash = getDefiHandlerCash();
   let lastAPR: DefiAPR | null =
     cash.lastDefiAPR == null ? null : getDefiAPR(cash.lastDefiAPR);
   let defiModule = DeFiModule.bind(defiModuleAddress);

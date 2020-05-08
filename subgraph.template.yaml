@@ -38,14 +38,17 @@ dataSources:
       apiVersion: 0.0.3
       language: wasm/assemblyscript
       entities:
-        - Status
+        - Pool
+        - ExitBalance
       abis:
         - name: FundsModule
           file: ./abis/FundsModule.json
       eventHandlers:
         - event: Status(uint256,uint256,uint256,uint256,uint256)
           handler: handleStatus
-      file: ./src/mapping.ts
+      blockHandlers:
+        - handler: handleBlock
+      file: ./src/mappings/funds.ts
   - kind: ethereum/contract
     name: LiquidityModule
     network: rinkeby

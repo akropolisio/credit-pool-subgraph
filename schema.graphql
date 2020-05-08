@@ -109,13 +109,17 @@ type DistributionEvent @entity {
   poolState: Pool!
 }
 
-type HandlerCash @entity {
+type DefiHandlerCash @entity {
+  id: ID!
+  lastDefiAPR: ID
+}
+
+type CommonHandlerCash @entity {
   id: ID!
   lastPoolSnapshot: ID!
   nextDistributionEventIndex: BigInt!
   proposalInterests: [BigInt!]!
   proposalInterestCounts: [Int!]!
-  lastDefiAPR: ID
 }
 
 type DefiAPR @entity {
