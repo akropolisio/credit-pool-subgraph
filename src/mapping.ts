@@ -155,6 +155,7 @@ export function handleDebtProposalCreated(event: DebtProposalCreated): void {
     let proposal = new Debt(debt_id);
     proposal.proposal_id = event.params.proposal.toHex();
     proposal.borrower = event.params.sender.toHexString();
+    proposal.supporters = [];
     proposal.description = event.params.descriptionHash;
     proposal.total = event.params.lAmount;
     proposal.apr = event.params.interest;
@@ -162,7 +163,6 @@ export function handleDebtProposalCreated(event: DebtProposalCreated): void {
     proposal.lStaked = BigInt.fromI32(0);
     proposal.pStaked = BigInt.fromI32(0);
     proposal.stakeProgress = "0";
-    proposal.pledgers = [];
     proposal.pledges = [];
     proposal.status = "PROPOSED";
     proposal.save();
@@ -248,7 +248,7 @@ export function handlePledgeAdded(event: PledgeAdded): void {
     pledge.lInitialLocked = pledge.lInitialLocked.plus(event.params.lAmount);
     pledge.unlockLiquidity = pledge.unlockLiquidity.plus(event.params.lAmount);
     pledge.pInitialLocked = pledge.pLocked;
-    pledge.proposal_id = proposal.proposal_id;
+    pledge.debt = proposal.id;
     pledge.save();
 
     // update pledger`s balances & locked
@@ -261,16 +261,16 @@ export function handlePledgeAdded(event: PledgeAdded): void {
 
     createNewUserSnapshot(pledger, event.block.timestamp);
 
-    var new_pledgers = proposal.pledgers;
-    var new_pledges = proposal.pledges;
-    // add new pledger if he is not in a list already
-    if (!contains_pledger(new_pledgers, pledger.id)) {
-        new_pledgers.push(pledger.id);
-        proposal.pledgers = new_pledgers;
+    // add new supporter if he is not in a list already
+    let new_supporters = proposal.supporters;
+    if (pledge.pledger != proposal.borrower && !contains(new_supporters, pledger.id)) {
+        new_supporters.push(pledger.id);
+        proposal.supporters = new_supporters;
     }
 
     // same with pledge list
-    if (!contains_pledge(new_pledges, pledge.id)) {
+    let new_pledges = proposal.pledges;
+    if (!contains(new_pledges, pledge.id)) {
         new_pledges.push(pledge.id);
         proposal.pledges = new_pledges;
     }
@@ -317,14 +317,17 @@ export function handlePledgeWithdrawn(event: PledgeWithdrawn): void {
     proposal.pStaked = proposal.pStaked.minus(event.params.pAmount);
     proposal.stakeProgress = calculate_progress(proposal, event.address);
 
-    // remove pledge and pledger from this debt if there is no stake left
+    // remove pledge and supporter from this debt if there is no stake left
     if (pledge.pLocked.le(BigInt.fromI32(0))) {
-        let new_pledgers = proposal.pledgers;
         let new_pledges = proposal.pledges;
-        new_pledges = filter_pledges(new_pledges, pledge_hash);
-        new_pledgers = filter_pledgers(proposal.pledgers, pledger.id);
-        proposal.pledgers = new_pledgers;
+        new_pledges = filter(new_pledges, pledge_hash);
         proposal.pledges = new_pledges;
+
+        if (pledge.pledger != proposal.borrower) {
+            let new_supporters = proposal.supporters;
+            new_supporters = filter(proposal.supporters, pledger.id);
+            proposal.supporters = new_supporters;
+        }
     }
     proposal.save();
 }
@@ -504,6 +507,7 @@ export function get_user(address: string): User {
         user.unlockLiquiditySum = BigInt.fromI32(0);
         user.pInterestSum = BigInt.fromI32(0);
         user.credit = BigInt.fromI32(0);
+        user.pledges = [];
     }
     return user as User;
 }
@@ -511,7 +515,6 @@ export function get_pledge(hash: string): Pledge {
     let pledge = Pledge.load(hash);
     if (pledge == null) {
         pledge = new Pledge(hash);
-        pledge.proposal_id = "";
         pledge.lInitialLocked = BigInt.fromI32(0);
         pledge.pInitialLocked = BigInt.fromI32(0);
         pledge.pLocked = BigInt.fromI32(0);
@@ -557,7 +560,7 @@ export function init_earning(t: BigInt, sender: User, distributionEventIndex: i3
     );
     earning.pAmount = BigInt.fromI32(0);
     earning.lAmount = BigInt.fromI32(0);
-    earning.address = sender.id;
+    earning.user = sender.id;
     earning.date = t;
 
     return earning as Earning;
@@ -572,7 +575,7 @@ export function init_balance_change(
         constructTwoPartId(t.toHex(), sender.id)
     );
     balance_change.amount = lAmount;
-    balance_change.address = sender.id;
+    balance_change.user = sender.id;
     balance_change.type = type;
     balance_change.date = t;
 
@@ -795,38 +798,29 @@ export function calculate_progress(proposal: Debt, loanProposalsModuleAddress: A
 }
 
 // AssemblyScript types workarounds
-export function contains_pledger(pledgers: Array<string>, s: string): boolean {
+export function contains(values: string[], s: string): boolean {
     let contains = false;
-    for (let i = 0; i < pledgers.length; i++) {
-        let p = pledgers[i];
-        if (p.includes(s)) contains = true;
+
+    for (let i = 0; i < values.length; i++) {
+        let p = values[i];
+
+        if (p.includes(s)) {
+            contains = true;
+            break;
+        }
     }
+
     return contains;
 }
 
 // AssemblyScript types workarounds
-export function contains_pledge(pledges: Array<string>, s: string): boolean {
-    let contains = false;
-    for (let i = 0; i < pledges.length; i++) {
-        let p = pledges[i];
-        if (p.includes(s)) contains = true;
-    }
-    return contains;
-}
-// AssemblyScript types workarounds
-export function filter_pledges(p: Array<string>, s: string): Array<string> {
+export function filter(values: Array<string>, s: string): Array<string> {
     let new_array = new Array<string>();
-    for (let i = 0; i < p.length; i++) {
-        if (!p[i].includes(s)) new_array.push(p[i]);
+
+    for (let i = 0; i < values.length; i++) {
+        if (!values[i].includes(s)) new_array.push(values[i]);
     }
-    return new_array;
-}
-// AssemblyScript types workarounds
-export function filter_pledgers(p: Array<string>, s: string): Array<string> {
-    let new_array = new Array<string>();
-    for (let i = 0; i < p.length; i++) {
-        if (!p[i].includes(s)) new_array.push(p[i]);
-    }
+
     return new_array;
 }
 

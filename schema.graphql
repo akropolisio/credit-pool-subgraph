@@ -1,4 +1,5 @@
 type User @entity {
+  "address"
   id: ID!
   lBalance: BigInt!
   pBalance: BigInt!
@@ -7,6 +8,10 @@ type User @entity {
   unlockLiquiditySum: BigInt!
   credit: BigInt!
   lastDistributionIndex: BigInt
+
+  pledges: [Pledge!]! @derivedFrom(field: "pledger")
+  debts: [Debt!]! @derivedFrom(field: "borrower")
+  lends: [Debt!]! @derivedFrom(field: "supporters")
 }
 
 type UserSnapshot @entity {
@@ -24,7 +29,7 @@ type UserSnapshot @entity {
 type ExitBalance @entity {
   id: ID!
   date: BigInt!
-  user: String!
+  user: User!
   lBalance: BigInt!
   pBalance: BigInt!
 }
@@ -32,7 +37,7 @@ type ExitBalance @entity {
 type BalanceChange @entity {
   id: ID!
   date: BigInt!
-  address: String!
+  user: User!
   amount: BigInt!
   type: BalanceChangeType!
 }
@@ -40,7 +45,7 @@ type BalanceChange @entity {
 type Earning @entity {
   id: ID!
   date: BigInt!
-  address: String!
+  user: User!
   pAmount: BigInt!
   lAmount: BigInt!
   type: DistributionType!
@@ -48,16 +53,17 @@ type Earning @entity {
 }
 
 type Debt @entity {
+  "keccak256(borrowerAddress + proposalId)"
   id: ID!
-  debt_id: BigInt
-  proposal_id: String!
+  debt_id: BigInt # on chain
+  proposal_id: String! # on chain
   description: Bytes!
   apr: BigInt!
-  borrower: String!
+  borrower: User!
+  supporters: [User!]!
+  pledges: [Pledge!]!
   total: BigInt!
   repayed: BigInt!
-  pledgers: [String!]!
-  pledges: [String!]!
   lStaked: BigInt!
   pStaked: BigInt!
   status: Status!
@@ -67,9 +73,10 @@ type Debt @entity {
 }
 
 type Pledge @entity {
+  "keccak256(supporterAddress + borrowerAddress + proposalId)"
   id: ID!
-  proposal_id: String!
-  pledger: String!
+  pledger: User!
+  debt: Debt!
   lInitialLocked: BigInt!
   pInitialLocked: BigInt!
   pLocked: BigInt!
