@@ -1,5 +1,6 @@
 {
   "startBlock": 6452000,
+  "network": "rinkeby",
   "modules": {
     "pool": "0x8FA73B29f37C9c5290819BAfd4Aea177E832423e",
     "funds": "0xFDba597C53c2434aE7461c36812377c7bB238AF3",

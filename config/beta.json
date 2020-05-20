@@ -1,5 +1,6 @@
 {
   "startBlock": 5800000,
+  "network": "rinkeby",
   "modules": {
     "funds": "0x3b1E2e62A4332BAb55A3e935EeaC95aF71002E7B",
     "liquidity": "0xfC95422e89e1892D939B103e73e80d60030b02A5",

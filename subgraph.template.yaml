@@ -4,7 +4,7 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: PoolContract
-    network: rinkeby
+    network: {{network}}
     source:
       address: "{{modules.pool}}"
       abi: PoolContract
@@ -28,7 +28,7 @@ dataSources:
       file: ./src/mappings/pool.ts
   - kind: ethereum/contract
     name: FundsModule
-    network: rinkeby
+    network: {{network}}
     source:
       address: "{{modules.funds}}"
       abi: FundsModule
@@ -51,7 +51,7 @@ dataSources:
       file: ./src/mappings/funds.ts
   - kind: ethereum/contract
     name: LiquidityModule
-    network: rinkeby
+    network: {{network}}
     source:
       address: "{{modules.liquidity}}"
       abi: LiquidityModule
@@ -75,7 +75,7 @@ dataSources:
       file: ./src/mapping.ts
   - kind: ethereum/contract
     name: LoanModule
-    network: rinkeby
+    network: {{network}}
     source:
       address: "{{modules.loan}}"
       abi: LoanModule
@@ -101,7 +101,7 @@ dataSources:
       file: ./src/mapping.ts
   - kind: ethereum/contract
     name: LoanProposalsModule
-    network: rinkeby
+    network: {{network}}
     source:
       address: "{{modules.loanProposals}}"
       abi: LoanProposalsModule
@@ -133,7 +133,7 @@ dataSources:
       file: ./src/mapping.ts
   - kind: ethereum/contract
     name: PToken
-    network: rinkeby
+    network: {{network}}
     source:
       address: "{{modules.pToken}}"
       abi: PToken
@@ -161,7 +161,7 @@ dataSources:
       file: ./src/mapping.ts
   - kind: ethereum/contract
     name: DeFiModule
-    network: rinkeby
+    network: {{network}}
     source:
       address: "{{modules.defi}}"
       abi: DeFiModule
