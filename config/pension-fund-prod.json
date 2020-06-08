@@ -1,0 +1,13 @@
+{
+  "startBlock": 10127500,
+  "network": "mainnet",
+  "modules": {
+    "pool": "0x3501d2c95F8dB9A94E0f0BCD15E2a440C71ceaE4",
+    "funds": "0x1dEA32aAd5Ef531538CdC7eab515072aBc65d855",
+    "liquidity": "0x23b1Fb463a87815F6f8714bc4af9Ce8214C4c748",
+    "loan": "0x0000000000000000000000000000000000000000",
+    "loanProposals": "0x0000000000000000000000000000000000000000",
+    "pToken": "0x764112eCFFDdB111f78e9475d70010fD1120257f",
+    "defi": "0xEEbaf85E5452F11e33e059ADb3F2F10E748a3562"
+  }
+}
