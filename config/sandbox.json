@@ -1,13 +1,13 @@
 {
-  "startBlock": 6445000,
+  "startBlock": 6629500,
   "network": "rinkeby",
   "modules": {
-    "pool": "0xaddF2d0C18a1989b800e9a4a8D496d856bBd0413",
-    "funds": "0x2fC82FF38325e6A4D5eD587aAfb90827c1b0FCb4",
-    "liquidity": "0x88c6D8073a9f4f92c503397F33C4587537a6FA7B",
-    "loan": "0xf72ecaD9F29CC99F59aE3862c8948E20E7Ee1062",
-    "loanProposals": "0x53668dA77ddaB3D90aC0c46AdE11Ebc1f9ADCf76",
-    "pToken": "0xB0E4aF12900380337D6D2b85063f2b791DCAc895",
-    "defi": "0xBc3426D4Cf4DFe01cCc088F61b59EDb3BA099Af5"
+    "pool": "0x113462A2c643dFEb47E9Cc3938FCBab04a058dF9",
+    "funds": "0xa157b6A439ae79dC6e6bf2E170bf0DcfcAEB5AdE",
+    "liquidity": "0xE45dD10Bb723b13Dd6A226718D1A40cad9518C24",
+    "loan": "0x49Cc5A2d862567D3b6d8566eDB3FDc174aee8c37",
+    "loanProposals": "0xC98560141039adb69d6B5F7949b5403FB8CC5B78",
+    "pToken": "0x6553789Cb23a656f2CcbC312AeBFC8C3d697dB1b",
+    "defi": "0x8413433fb3A7EC491c51d415AC437A32C5C81a40"
   }
 }

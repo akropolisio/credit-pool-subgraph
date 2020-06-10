@@ -8,7 +8,7 @@
     "build:pension-fund": "TYPE=pension-fund yarn build",
     "build:pension-fund-prod": "TYPE=pension-fund-prod yarn build",
     "build": "yarn prepare && graph build",
-    "deploy:sandbox": "TYPE=sandbox yarn deploy-thegraph alekspickle/akropolis-os-sandbox",
+    "deploy:sandbox": "TYPE=sandbox yarn deploy-thegraph in19farkt/akropolis-os-sandbox",
     "deploy:beta": "TYPE=beta yarn deploy-thegraph alekspickle/akropolis-os-beta",
     "deploy:beta-defi": "TYPE=beta-defi yarn deploy-thegraph alekspickle/akropolis-os-beta-defi",
     "deploy:pension-fund": "TYPE=pension-fund yarn deploy-thegraph in19farkt/akropolis-os-pension-fund",
