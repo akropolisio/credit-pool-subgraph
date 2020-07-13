@@ -1,0 +1,13 @@
+{
+  "startBlock": 6629500,
+  "network": "rinkeby",
+  "modules": {
+    "pool": "0x113462A2c643dFEb47E9Cc3938FCBab04a058dF9",
+    "funds": "0xa157b6A439ae79dC6e6bf2E170bf0DcfcAEB5AdE",
+    "liquidity": "0xE45dD10Bb723b13Dd6A226718D1A40cad9518C24",
+    "loan": "0x49Cc5A2d862567D3b6d8566eDB3FDc174aee8c37",
+    "loanProposals": "0xC98560141039adb69d6B5F7949b5403FB8CC5B78",
+    "pToken": "0x6553789Cb23a656f2CcbC312AeBFC8C3d697dB1b",
+    "defi": "0x8413433fb3A7EC491c51d415AC437A32C5C81a40"
+  }
+}
