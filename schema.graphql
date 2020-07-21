@@ -107,6 +107,8 @@ type DistributionEvent @entity {
   totalSupply: BigInt!
   date: BigInt!
   poolState: Pool!
+
+  claims: [Earning!]! @derivedFrom(field: "distributionEvent")
 }
 
 type DefiHandlerCash @entity {
