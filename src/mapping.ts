@@ -99,8 +99,7 @@ export function handleWithdraw(event: Withdraw): void {
   pool.save();
   addPoolSnapshot(event.block.timestamp, pool);
 
-  //TODO: make use of the actual `sender` field
-  let user = get_user(event.transaction.from.toHexString());
+  let user = get_user(event.params.sender.toHexString());
   user.lBalance = user.lBalance.minus(
     lProportional(event.params.pAmount, user)
   );
